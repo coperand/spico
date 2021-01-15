@@ -114,6 +114,27 @@ def printUserTags(client, targetId):
     print("Summary:", len(tags))
 
 
+def printReelMedia(client, reelId):
+    medias = client.getTotalReelMedia(reelId)
+    
+    for item in medias:
+        if item['media_type'] == 1:
+            print("id:", item['id'], 'photo_url:', item['image_versions2']['candidates'][0]['url'])
+        elif item['media_type'] == 2:
+            print("id:", item['id'], 'video_url:', item['video_versions'][0]['url'])
+        else:
+            print("id:", item['id'], "media_type:", item['media_type'], "MEDIA TYPE IS UNKNOWN!")
+
+
+def printHighlights(client, targetId):
+    highlights = client.getTotalUserHighlights(targetId)
+    
+    for item in highlights:
+        print(item['title'], ":", sep='')
+        printReelMedia(client, item['id'])
+        print()
+
+
 #Подготовка клиента
 client = iAPI.InstagramAPI('ingabeiko94', 'mKzkgUbYBs')
 client.login()
@@ -139,8 +160,5 @@ targetId = getUserId(client, "arina_weasley")
 #Получить фото, на которых отмечен пользователь
 #printUserTags(client, targetId)
 
-#client.getUserHighlights(targetId)
-#print(client.LastJson)
-
-client.getReelMedia("highlight:17943492508091954")
-print(client.LastJson)
+#Получить все истории из панели актуального
+#printHighlights(client, targetId)

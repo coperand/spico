@@ -432,3 +432,19 @@ class InstagramAPI:
             except KeyError as e:
                 break
         return liked_items
+
+    def getTotalUserHighlights(self, usernameId):
+        highlights = []
+        self.getUserHighlights(usernameId)
+        temp = self.LastJson
+        for item in temp['tray']:
+            highlights.append(item)
+        return highlights
+
+    def getTotalReelMedia(self, reelId):
+        reel_media = []
+        self.getReelMedia(reelId)
+        temp = self.LastJson
+        for item in temp['reels'][reelId]['items']:
+            reel_media.append(item)
+        return reel_media
