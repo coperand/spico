@@ -106,34 +106,6 @@ class InstagramAPI:
     def logout(self):
         logout = self.SendRequest('accounts/logout/')
 
-    def throwIfInvalidUsertags(self, usertags):
-        for user_position in usertags:
-            # Verify this usertag entry, ensuring that the entry is format
-            # ['position'=>[0.0,1.0],'user_id'=>'123'] and nothing else.
-            correct = True
-            if isinstance(user_position, dict):
-                position = user_position.get('position', None)
-                user_id = user_position.get('user_id', None)
-
-                if isinstance(position, list) and len(position) == 2:
-                    try:
-                        x = float(position[0])
-                        y = float(position[1])
-                        if x < 0.0 or x > 1.0:
-                            correct = False
-                        if y < 0.0 or y > 1.0:
-                            correct = False
-                    except:
-                        correct = False
-                try:
-                    user_id = long(user_id)
-                    if user_id < 0:
-                        correct = False
-                except:
-                    correct = False
-            if not correct:
-                raise Exception('Invalid user entry in usertags array.')
-
     def editMedia(self, mediaId, captionText=''):
         data = json.dumps({'_uuid': self.uuid,
                            '_uid': self.username_id,
@@ -299,7 +271,8 @@ class InstagramAPI:
         verify = False  # don't show request warning
 
         if (not self.isLoggedIn and not login):
-            raise Exception("Not logged in!\n")
+            print("Not logged in!\n")
+            return False
 
         self.s.headers.update({'Connection': 'close',
                                'Accept': '*/*',
@@ -332,8 +305,6 @@ class InstagramAPI:
                 print(self.LastJson)
                 if 'error_type' in self.LastJson and self.LastJson['error_type'] == 'sentry_block':
                     raise SentryBlockException(self.LastJson['message'])
-            except SentryBlockException:
-                raise
             except:
                 pass
             return False
@@ -344,13 +315,15 @@ class InstagramAPI:
         while 1:
             self.getUserFollowers(usernameId, next_max_id)
             temp = self.LastJson
-
-            for item in temp["users"]:
-                followers.append(item)
-
-            if temp["big_list"] is False:
-                return followers
-            next_max_id = temp["next_max_id"]
+            try:
+                for item in temp["users"]:
+                    followers.append(item)
+                next_max_id = temp["next_max_id"]
+                if temp["big_list"] is False:
+                    return followers
+            except KeyError as e:
+                break
+        return followers
 
     def getTotalFollowings(self, usernameId):
         followers = []
@@ -358,13 +331,15 @@ class InstagramAPI:
         while True:
             self.getUserFollowings(usernameId, next_max_id)
             temp = self.LastJson
-
-            for item in temp["users"]:
-                followers.append(item)
-
-            if temp["big_list"] is False:
-                return followers
-            next_max_id = temp["next_max_id"]
+            try:
+                for item in temp["users"]:
+                    followers.append(item)
+                next_max_id = temp["next_max_id"]
+                if temp["big_list"] is False:
+                    return followers
+            except KeyError as e:
+                break
+        return followers
 
     def getTotalStory(self, usernameId):
         self.getStory(usernameId)
@@ -382,8 +357,11 @@ class InstagramAPI:
         comments = []
         self.getMediaComments(mediaId)
         temp = self.LastJson
-        for item in temp["comments"]:
-            comments.append(item)
+        try:
+            for item in temp["comments"]:
+                comments.append(item)
+        except KeyError as e:
+                pass
         return comments
 
     def getTotalUserTags(self, usernameId):
@@ -392,11 +370,15 @@ class InstagramAPI:
         while True:
             self.getUserTags(usernameId)
             temp = self.LastJson
-            for item in temp["items"]:
-                user_tags.append(item)
-            if temp["more_available"] is False:
-                return user_tags
-            next_max_id = temp["next_max_id"]
+            try:
+                for item in temp["items"]:
+                    user_tags.append(item)
+                next_max_id = temp["next_max_id"]
+                if temp["more_available"] is False:
+                    return user_tags
+            except KeyError as e:
+                break
+        return user_tags
 
     def getTotalUserFeed(self, usernameId, minTimestamp=None):
         user_feed = []
@@ -404,20 +386,16 @@ class InstagramAPI:
         while True:
             self.getUserFeed(usernameId, next_max_id, minTimestamp)
             temp = self.LastJson
-            for item in temp["items"]:
-                user_feed.append(item)
-            if temp["more_available"] is False:
-                return user_feed
-            next_max_id = temp["next_max_id"]
-
-    def getTotalSelfUserFeed(self, minTimestamp=None):
-        return self.getTotalUserFeed(self.username_id, minTimestamp)
-
-    def getTotalSelfFollowers(self):
-        return self.getTotalFollowers(self.username_id)
-
-    def getTotalSelfFollowings(self):
-        return self.getTotalFollowings(self.username_id)
+            try:
+                for item in temp["items"]:
+                    user_feed.append(item)
+                next_max_id = temp["next_max_id"]
+            
+                if temp["more_available"] is False:
+                    return user_feed
+            except KeyError as e:
+                break
+        return user_feed
 
     def getTotalLikedMedia(self, scan_rate=1):
         next_id = ''
@@ -437,14 +415,20 @@ class InstagramAPI:
         highlights = []
         self.getUserHighlights(usernameId)
         temp = self.LastJson
-        for item in temp['tray']:
-            highlights.append(item)
+        try:
+            for item in temp['tray']:
+                highlights.append(item)
+        except KeyError as e:
+                pass
         return highlights
 
     def getTotalReelMedia(self, reelId):
         reel_media = []
         self.getReelMedia(reelId)
         temp = self.LastJson
-        for item in temp['reels'][reelId]['items']:
-            reel_media.append(item)
+        try:
+            for item in temp['reels'][reelId]['items']:
+                reel_media.append(item)
+        except KeyError as e:
+                pass
         return reel_media
