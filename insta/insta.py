@@ -1,4 +1,6 @@
 import InstagramAPI as iAPI
+import urllib.request
+import os.path
 
 
 class InstaModule:
@@ -25,8 +27,6 @@ class InstaModule:
             return
         #print(ret)
         
-        #TODO: Скачивание медиа?
-        
         #Получение подписок
         #ret = self._receiveFollowings(targetId)
         #print(ret)
@@ -52,7 +52,18 @@ class InstaModule:
         #Получение всех историй из панели актуального
         #ret = self._receiveHighlights(targetId)
         #print(ret)
-
+    
+    def saveMedia(self, media_type, media_id, url):
+        name = '../media/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
+        #Проверка наличия файла с таким именем
+        if os.path.exists(name):
+            return
+        
+        img = urllib.request.urlopen(url).read()
+        out = open(name, "wb")
+        out.write(img)
+        out.close()
+    
     def getUserId(self, username):
         '''Получаем id пользователя по имени'''
         return self.client.getTotalSearchUsername(username)['pk']
@@ -69,6 +80,8 @@ class InstaModule:
         ret['name'] = profile['full_name']
         ret['bio'] = profile['biography']
         ret['avatar'] = profile['hd_profile_pic_url_info']['url']
+        ret['avatar_id'] = profile['profile_pic_id']
+        self.saveMedia(1, ret['avatar_id'], ret['avatar'])
         return ret
 
     def _receiveFollowings(self, targetId):
@@ -108,10 +121,14 @@ class InstaModule:
             
             if item['media_type'] == 1:
                 ret_item['type'] = 1
+                ret_item['id'] = item['id']
                 ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
+                self.saveMedia(1, ret_item['id'], ret_item['photo'])
             elif item['media_type'] == 2:
                 ret_item['type'] = 2
+                ret_item['id'] = item['id']
                 ret_item['video'] = item['video_versions'][0]['url']
+                self.saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
                 ret_item['carousel'] = []
@@ -120,9 +137,11 @@ class InstaModule:
                     media = item['carousel_media'][i]
                     
                     if media['media_type'] == 1:
-                        ret_item['carousel'].append({'type': 1, 'photo': media['image_versions2']['candidates'][0]['url']})
+                        ret_item['carousel'].append({'type': 1, 'id': media['id'], 'photo': media['image_versions2']['candidates'][0]['url']})
+                        self.saveMedia(1, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['photo'])
                     elif media['media_type'] == 2:
-                        ret_item['carousel'].append({'type': 2, 'video': media['video_versions'][0]['url']})
+                        ret_item['carousel'].append({'type': 2, 'id': media['id'], 'video': media['video_versions'][0]['url']})
+                        self.saveMedia(2, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['video'])
             
             if item['comment_count'] > 0:
                 ret_item['comments'] = self._receiveComments(item['id'])
@@ -143,9 +162,11 @@ class InstaModule:
         print("Stories:")
         for item in stories['items']:
             if item['media_type'] == 1:
-                ret.append({'type': 1, 'photo': item['image_versions2']['candidates'][0]['url']})
+                ret.append({'type': 1, 'id': item['id'], 'photo': item['image_versions2']['candidates'][0]['url']})
+                self.saveMedia(1, ret[-1]['id'], ret[-1]['photo'])
             elif item['media_type'] == 2:
-                ret.append({'type': 2, 'video': item['video_versions'][0]['url']})
+                ret.append({'type': 2, 'id': item['id'], 'video': item['video_versions'][0]['url']})
+                self.saveMedia(2, ret[-1]['id'], ret[-1]['video'])
         return ret
 
     def _receiveUserTags(self, targetId):
@@ -158,10 +179,14 @@ class InstaModule:
             
             if item['media_type'] == 1:
                 ret_item['type'] = 1
+                ret_item['id'] = item['id']
                 ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
+                self.saveMedia(1, ret_item['id'], ret_item['photo'])
             elif item['media_type'] == 2:
                 ret_item['type'] = 2
+                ret_item['id'] = item['id']
                 ret_item['video'] = item['video_versions'][0]['url']
+                self.saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
                 ret_item['carousel'] = []
@@ -170,9 +195,11 @@ class InstaModule:
                     media = item['carousel_media'][i]
                     
                     if media['media_type'] == 1:
-                        ret_item['carousel'].append({'type': 1, 'photo': media['image_versions2']['candidates'][0]['url']})
+                        ret_item['carousel'].append({'type': 1, 'id': media['id'], 'photo': media['image_versions2']['candidates'][0]['url']})
+                        self.saveMedia(1, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['photo'])
                     elif media['media_type'] == 2:
-                        ret_item['carousel'].append({'type': 2, 'video': media['video_versions'][0]['url']})
+                        ret_item['carousel'].append({'type': 2, 'id': media['id'], 'video': media['video_versions'][0]['url']})
+                        self.saveMedia(2, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['video'])
             ret.append(ret_item)
         return ret
     
@@ -183,9 +210,11 @@ class InstaModule:
         
         for item in medias:
             if item['media_type'] == 1:
-                ret.append({'type': 1, 'photo': item['image_versions2']['candidates'][0]['url']})
+                ret.append({'type': 1, 'id': item['id'], 'photo': item['image_versions2']['candidates'][0]['url']})
+                self.saveMedia(1, ret[-1]['id'], ret[-1]['photo'])
             elif item['media_type'] == 2:
-                ret.append({'type': 2, 'video': item['video_versions'][0]['url']})
+                ret.append({'type': 2, 'id': item['id'], 'video': item['video_versions'][0]['url']})
+                self.saveMedia(2, ret[-1]['id'], ret[-1]['video'])
         return ret
 
     def _receiveHighlights(self, targetId):
