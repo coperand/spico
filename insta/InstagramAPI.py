@@ -92,7 +92,7 @@ class InstagramAPI:
                     self.token = self.LastResponse.cookies["csrftoken"]
 
                     self.syncFeatures()
-                    print("Login success!\n")
+                    #print("Login success!\n")
                     return True
 
     def syncFeatures(self):

@@ -7,172 +7,195 @@ class InstaModule:
         '''Подготовка клиента'''
         self.client = iAPI.InstagramAPI(login, passwd)
         self.client.login()
+        if self.client.isLoggedIn is False:
+            raise Exception("Instagram logging failure")
+        #TODO: Обработка исключения в вызывающем коде
 
     def getData(self, nickname):
         
         #Получение идентификатора пользователя по имени
         targetId = self.getUserId(nickname)
         
-        #TODO: Сначала получить информацию об аккаунте и проверить его на закрытость
-        #TODO: Переименовать методы с  print на другое после изменения семантики
+        #TODO: Проверка корректности имени на стадии его добавления
         
-        #Получить подписки
-        #self._printFollowings(targetId)
+        #Получение информации об аккаунте и возврат в случае, если он закрытый
+        ret = self._receiveProfileInfo(targetId)
+        if ret is False:
+            #TODO: Оповестить о закрытости аккаунта
+            return
+        #print(ret)
         
-        #Получить подписчиков
-        #self._printFollowers(targetId)
+        #TODO: Скачивание медиа?
         
-        #Получить публикации (с комментариями)
-        #self._printPosts(targetId)
+        #Получение подписок
+        #ret = self._receiveFollowings(targetId)
+        #print(ret)
         
-        #Получить информацию об аккаунте
-        #self._printProfileInfo(targetId)
+        #Получение подписчиков
+        #ret = self._receiveFollowers(targetId)
+        #print(ret)
         
-        #Получить истории
-        #self._printStories(targetId)
+        #Получение публикаций (с комментариями)
+        #ret = self._receivePosts(targetId)
+        #print(ret)
         
-        #Получить фото, на которых отмечен пользователь
-        #self._printUserTags(targetId)
+        #Получение историй
+        #ret = self._receiveStories(targetId)
+        #if ret is not False:
+        #    #TODO: Оповещение об истории
+        #    print(ret)
         
-        #Получить все истории из панели актуального
-        #self._printHighlights(targetId)
+        #Получение фото, на которых отмечен пользователь
+        #ret = self._receiveUserTags(targetId)
+        #print(ret)
+        
+        #Получение всех историй из панели актуального
+        #ret = self._receiveHighlights(targetId)
+        #print(ret)
 
     def getUserId(self, username):
         '''Получаем id пользователя по имени'''
         return self.client.getTotalSearchUsername(username)['pk']
 
-    def _printFollowings(self, targetId):
+    def _receiveProfileInfo(self, targetId):
+        '''Получаем информацию об аккаунте'''
+        profile = self.client.getTotalUsernameInfo(targetId)
+        ret = {}
+        
+        if profile['is_private'] == True:
+            print("Account is private")
+            return False
+        
+        ret['name'] = profile['full_name']
+        ret['bio'] = profile['biography']
+        ret['avatar'] = profile['hd_profile_pic_url_info']['url']
+        return ret
+
+    def _receiveFollowings(self, targetId):
         '''Получаем подписки'''
         followings = self.client.getTotalFollowings(targetId)
+        ret = []
         
         for item in followings:
-            print(item['username'])
-        
-        print("Summary:", len(followings))
+            ret.append(item['username'])
+        return ret
 
-    def _printFollowers(self, targetId):
+    def _receiveFollowers(self, targetId):
         '''Получаем подписки'''
         followers = self.client.getTotalFollowers(targetId)
+        ret = []
         
         for item in followers:
-            print(item['username'])
-        
-        print("Summary:", len(followers))
+            ret.append(item['username'])
+        return ret
 
-    def _printComments(self, mediaId):
+    def _receiveComments(self, mediaId):
         '''Получаем комментарии к посту'''
         comments = self.client.getTotalMediaComments(mediaId)
-        print("Comments:")
+        ret = []
+        
         for item in comments:
-            print("= @", item['user']['username'], ": ",  item['text'], sep='')
+            ret.append({'user': item['user']['username'], 'text': item['text']})
+        return ret
 
-    def _printPosts(self, targetId):
+    def _receivePosts(self, targetId):
         '''Получаем все посты пользователя'''
         posts = self.client.getTotalUserFeed(targetId)
+        ret = []
         
         for item in posts:
+            ret_item = {}
+            
             if item['media_type'] == 1:
-                print("id:", item['id'], 'photo_url:', item['image_versions2']['candidates'][0]['url'])
+                ret_item['type'] = 1
+                ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
             elif item['media_type'] == 2:
-                print("id:", item['id'], 'video_url:', item['video_versions'][0]['url'])
+                ret_item['type'] = 2
+                ret_item['video'] = item['video_versions'][0]['url']
             elif item['media_type'] == 8:
-                print("Carousel:")
+                ret_item['type'] = 8
+                ret_item['carousel'] = []
+                
                 for i in range(0, item['carousel_media_count']):
                     media = item['carousel_media'][i]
                     
                     if media['media_type'] == 1:
-                        print("", i + 1, "-", "id:", media['id'], 'photo_url:', media['image_versions2']['candidates'][0]['url'])
+                        ret_item['carousel'].append({'type': 1, 'photo': media['image_versions2']['candidates'][0]['url']})
                     elif media['media_type'] == 2:
-                        print("", i + 1, "-", "id:", media['id'], 'video_url:', media['video_versions'][0]['url'])
-                    else:
-                        print("", i + 1, "-", "id:", media['id'], "media_type:", media['media_type'], "MEDIA TYPE IS UNKNOWN!")
-            else:
-                print("id:", item['id'], "media_type:", item['media_type'], "MEDIA TYPE IS UNKNOWN!")
+                        ret_item['carousel'].append({'type': 2, 'video': media['video_versions'][0]['url']})
             
             if item['comment_count'] > 0:
-                self._printComments(item['id'])
-            print()
+                ret_item['comments'] = self._receiveComments(item['id'])
+            else:
+                ret_item['comments'] = []
+            ret.append(ret_item)
         
-        print("Summary:", len(posts))
+        return ret
 
-    def _printProfileInfo(self, targetId):
-        '''Получаем информацию об аккаунте'''
-        profile = self.client.getTotalUsernameInfo(targetId)
-        if profile['is_private'] == True:
-            print("Account is private")
-            return
-        
-        print("Fullname:", profile['full_name'])
-        print("Biography:", profile['biography'])
-        print("Profile pic url:", profile['hd_profile_pic_url_info']['url'])
-
-    def _printStories(self, targetId):
+    def _receiveStories(self, targetId):
         '''Получаем текущие истории'''
         stories = self.client.getTotalStory(targetId)
+        ret = []
         
         if stories['latest_reel_media'] == None:
-            print("There is no stories media")
-            return
+            return False
         
         print("Stories:")
         for item in stories['items']:
             if item['media_type'] == 1:
-                print('photo_url:', item['image_versions2']['candidates'][0]['url'])
+                ret.append({'type': 1, 'photo': item['image_versions2']['candidates'][0]['url']})
             elif item['media_type'] == 2:
-                print('video_url:', item['video_versions'][0]['url'])
-            else:
-                print("id:", item['id'], "media_type:", item['media_type'], "MEDIA TYPE IS UNKNOWN!")
-        
-        print("Summary:", len(stories['items']))
+                ret.append({'type': 2, 'video': item['video_versions'][0]['url']})
+        return ret
 
-    def _printUserTags(self, targetId):
+    def _receiveUserTags(self, targetId):
         '''Получаем истории, на которых отметили пользователя'''
         tags = self.client.getTotalUserTags(targetId)
+        ret = []
         
         for item in tags:
+            ret_item = {}
+            
             if item['media_type'] == 1:
-                print("id:", item['id'], 'photo_url:', item['image_versions2']['candidates'][0]['url'])
+                ret_item['type'] = 1
+                ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
             elif item['media_type'] == 2:
-                print("id:", item['id'], 'video_url:', item['video_versions'][0]['url'])
+                ret_item['type'] = 2
+                ret_item['video'] = item['video_versions'][0]['url']
             elif item['media_type'] == 8:
-                print("Carousel:")
+                ret_item['type'] = 8
+                ret_item['carousel'] = []
+                
                 for i in range(0, item['carousel_media_count']):
                     media = item['carousel_media'][i]
                     
                     if media['media_type'] == 1:
-                        print("", i + 1, "-", "id:", media['id'], 'photo_url:', media['image_versions2']['candidates'][0]['url'])
+                        ret_item['carousel'].append({'type': 1, 'photo': media['image_versions2']['candidates'][0]['url']})
                     elif media['media_type'] == 2:
-                        print("", i + 1, "-", "id:", media['id'], 'video_url:', media['video_versions'][0]['url'])
-                    else:
-                        print("", i + 1, "-", "id:", media['id'], "media_type:", media['media_type'], "MEDIA TYPE IS UNKNOWN!")
-            else:
-                print("id:", item['id'], "media_type:", item['media_type'], "MEDIA TYPE IS UNKNOWN!")
-            
-            print()
-        
-        print("Summary:", len(tags))
+                        ret_item['carousel'].append({'type': 2, 'video': media['video_versions'][0]['url']})
+            ret.append(ret_item)
+        return ret
     
-    def _printReelMedia(self, reelId):
+    def _receiveReelMedia(self, reelId):
         '''Получаем конкретные истории из актуального'''
         medias = self.client.getTotalReelMedia(reelId)
+        ret = []
         
         for item in medias:
             if item['media_type'] == 1:
-                print("id:", item['id'], 'photo_url:', item['image_versions2']['candidates'][0]['url'])
+                ret.append({'type': 1, 'photo': item['image_versions2']['candidates'][0]['url']})
             elif item['media_type'] == 2:
-                print("id:", item['id'], 'video_url:', item['video_versions'][0]['url'])
-            else:
-                print("id:", item['id'], "media_type:", item['media_type'], "MEDIA TYPE IS UNKNOWN!")
+                ret.append({'type': 2, 'video': item['video_versions'][0]['url']})
+        return ret
 
-    def _printHighlights(self, targetId):
+    def _receiveHighlights(self, targetId):
         '''Получаем наборы историй с панели актуального'''
         highlights = self.client.getTotalUserHighlights(targetId)
+        ret = []
         
         for item in highlights:
-            print(item['title'], ":", sep='')
-            self._printReelMedia(item['id'])
-            print()
-
+            ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
+        return ret
 
 insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
 insta.getData("arina_weasley")
