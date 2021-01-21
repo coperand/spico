@@ -1,4 +1,6 @@
 import vk_api
+import urllib.request
+import os.path
 
 
 class VkModule:
@@ -32,12 +34,23 @@ class VkModule:
         #print(ret)
         
         #Получаем фотографии(с комментариями)
-        #ret = self._receiveAllPhotos(targetId)
+        ret = self._receiveAllPhotos(targetId)
         #print(ret)
         
         #Получаем записи на стене (с комментариями)
         ret = self._receivePosts(targetId)
-        print(ret)
+        #print(ret)
+
+    def _saveMedia(self, media_type, media_id, url):
+        name = '../media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
+        #Проверка наличия файла с таким именем
+        if os.path.exists(name):
+            return
+        
+        img = urllib.request.urlopen(url).read()
+        out = open(name, "wb")
+        out.write(img)
+        out.close()
 
     def _receiveUserInfo(self, targetId):
         response = self.vk.users.get(user_ids=targetId, fields='''sex, bdate, city, home_town, online, contacts, site, education, universities, schools, status, last_seen, followers_count, occupation, relatives, relation, personal,
@@ -173,7 +186,9 @@ class VkModule:
         ret = []
         for item in photos:
             ret_item = {}
+            ret_item['id'] = item['id']
             ret_item['photo'] = item['sizes'][-1]['url']
+            self._saveMedia(1, ret_item['id'], ret_item['photo'])
             if item['comments']['count'] > 0:
                 ret_item['comments'] = self._receivePhotoComments(targetId, item['id'])
             else:
@@ -221,7 +236,8 @@ class VkModule:
             ret_item['attachments'] = []
             for attachment in item.setdefault('attachments', []):
                 if attachment['type'] == 'photo':
-                    ret_item['attachments'].append({'photo': attachment['photo']['sizes'][-1]['url']})
+                    ret_item['attachments'].append({'id': attachment['photo']['id'], 'photo': attachment['photo']['sizes'][-1]['url']})
+                    self._saveMedia(1, attachment['photo']['id'], attachment['photo']['sizes'][-1]['url'])
             if item['comments']['count'] > 0:
                 ret_item['comments'] = self._receivePostComments(targetId, item['id'])
             else:
@@ -231,3 +247,4 @@ class VkModule:
 
 vk = VkModule('8801923291704', 'CM8Ipp69w')
 vk.getData('78961353')
+
