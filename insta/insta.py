@@ -1,57 +1,53 @@
 import InstagramAPI as iAPI
 import urllib.request
 import os.path
-
+from InstaAnalyzer import InstaAnalyzer
 
 class InstaModule:
 
     def __init__(self, login, passwd):
-        '''Подготовка клиента'''
+        '''Подготовка клиента и класса для анализа данных'''
         self.client = iAPI.InstagramAPI(login, passwd)
         self.client.login()
         if self.client.isLoggedIn is False:
             raise Exception("Instagram logging failure")
         #TODO: Обработка исключения в вызывающем коде
+        
+        self.analyzer = InstaAnalyzer()
 
     def getData(self, nickname):
         
         #Получение идентификатора пользователя по имени
-        targetId = self.getUserId(nickname)
+        targetId = self._getUserId(nickname)
         
         #TODO: Проверка корректности имени на стадии его добавления
         
         #Получение информации об аккаунте и возврат в случае, если он закрытый
         ret = self._receiveProfileInfo(targetId)
         if ret is False:
-            #TODO: Оповестить о закрытости аккаунта
+            self.analyzer.handleData(nickname, 'private', True)
             return
-        #print(ret)
+        else:
+            self.analyzer.handleData(nickname, 'private', False)
+        
+        self.analyzer.handleData(nickname, 'profile', ret)
         
         #Получение подписок
-        #ret = self._receiveFollowings(targetId)
-        #print(ret)
-        
-        #Получение подписчиков
-        #ret = self._receiveFollowers(targetId)
-        #print(ret)
+        self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
         
         #Получение публикаций (с комментариями)
-        #ret = self._receivePosts(targetId)
-        #print(ret)
+        self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
         
         #Получение историй
-        #ret = self._receiveStories(targetId)
-        #if ret is not False:
-        #    #TODO: Оповещение об истории
-        #    print(ret)
+        #stories = self._receiveStories(targetId)
+        #if stories is not False:
+        #    self.analyzer.handleData(nickname, 'stories', stories)
         
         #Получение фото, на которых отмечен пользователь
-        #ret = self._receiveUserTags(targetId)
-        #print(ret)
+        #self.analyzer.handleData(nickname, 'tags', self._receiveUserTags(targetId))
         
         #Получение всех историй из панели актуального
-        #ret = self._receiveHighlights(targetId)
-        #print(ret)
+        #self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
     
     def _saveMedia(self, media_type, media_id, url):
         name = '../media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
@@ -64,7 +60,7 @@ class InstaModule:
         out.write(img)
         out.close()
     
-    def getUserId(self, username):
+    def _getUserId(self, username):
         '''Получаем id пользователя по имени'''
         return self.client.getTotalSearchUsername(username)['pk']
 
@@ -74,7 +70,6 @@ class InstaModule:
         ret = {}
         
         if profile['is_private'] == True:
-            print("Account is private")
             return False
         
         ret['name'] = profile['full_name']
@@ -90,15 +85,6 @@ class InstaModule:
         ret = []
         
         for item in followings:
-            ret.append(item['username'])
-        return ret
-
-    def _receiveFollowers(self, targetId):
-        '''Получаем подписки'''
-        followers = self.client.getTotalFollowers(targetId)
-        ret = []
-        
-        for item in followers:
             ret.append(item['username'])
         return ret
 
@@ -131,6 +117,7 @@ class InstaModule:
                 self._saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
+                ret_item['id'] = item['id']
                 ret_item['carousel'] = []
                 
                 for i in range(0, item['carousel_media_count']):

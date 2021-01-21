@@ -229,6 +229,17 @@ class InstagramAPI:
     def getSelfUsersFollowing(self):
         return self.getUserFollowings(self.username_id)
 
+    def _listsDiff(self, list1, list2):
+        diff1, diff2 = [], []
+        for item in list1:
+            if item not in list2:
+                diff1.append(item)
+        for item in list2:
+            if item not in list1:
+                diff2.append(item)
+        
+        return diff1, diff2
+
     def getUserFollowers(self, usernameId, maxid=''):
         if maxid == '':
             return self.SendRequest('friendships/' + str(usernameId) + '/followers/?rank_token=' + self.rank_token)
@@ -317,29 +328,31 @@ class InstagramAPI:
             temp = self.LastJson
             try:
                 for item in temp["users"]:
-                    followers.append(item)
+                    followers.append(item['username'])
                 next_max_id = temp["next_max_id"]
                 if temp["big_list"] is False:
+                    break
                     return followers
             except KeyError as e:
                 break
+        
         return followers
 
     def getTotalFollowings(self, usernameId):
-        followers = []
+        followings = []
         next_max_id = ''
         while True:
             self.getUserFollowings(usernameId, next_max_id)
             temp = self.LastJson
             try:
                 for item in temp["users"]:
-                    followers.append(item)
+                    followings.append(item)
                 next_max_id = temp["next_max_id"]
                 if temp["big_list"] is False:
-                    return followers
+                    return followings
             except KeyError as e:
                 break
-        return followers
+        return followings
 
     def getTotalStory(self, usernameId):
         self.getStory(usernameId)
