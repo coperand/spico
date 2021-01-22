@@ -30,24 +30,26 @@ class InstaModule:
         else:
             self.analyzer.handleData(nickname, 'private', False)
         
-        self.analyzer.handleData(nickname, 'profile', ret)
+        #self.analyzer.handleData(nickname, 'profile', ret)
         
         #Получение подписок
-        self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
+        #self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
         
         #Получение публикаций (с комментариями)
-        self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
+        #self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
         
         #Получение историй
         #stories = self._receiveStories(targetId)
         #if stories is not False:
         #    self.analyzer.handleData(nickname, 'stories', stories)
+        #else:
+        #    self.analyzer.handleData(nickname, 'stories', None)
         
         #Получение фото, на которых отмечен пользователь
         #self.analyzer.handleData(nickname, 'tags', self._receiveUserTags(targetId))
         
         #Получение всех историй из панели актуального
-        #self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
+        self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
     
     def _saveMedia(self, media_type, media_id, url):
         name = '../media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
@@ -146,7 +148,6 @@ class InstaModule:
         if stories['latest_reel_media'] == None:
             return False
         
-        print("Stories:")
         for item in stories['items']:
             if item['media_type'] == 1:
                 ret.append({'type': 1, 'id': item['id'], 'photo': item['image_versions2']['candidates'][0]['url']})
@@ -176,6 +177,7 @@ class InstaModule:
                 self._saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
+                ret_item['id'] = item['id']
                 ret_item['carousel'] = []
                 
                 for i in range(0, item['carousel_media_count']):
@@ -213,5 +215,6 @@ class InstaModule:
             ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
         return ret
 
-insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+#insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+insta = InstaModule('efimdubuev', '1P7a1hzNcI')
 insta.getData("arina_weasley")
