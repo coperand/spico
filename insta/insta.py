@@ -30,23 +30,23 @@ class InstaModule:
         else:
             self.analyzer.handleData(nickname, 'private', {'bool': False})
         
-        #self.analyzer.handleData(nickname, 'profile', ret)
+        self.analyzer.handleData(nickname, 'profile', ret)
         
         #Получение подписок
-        #self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
+        self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
         
         #Получение публикаций (с комментариями)
-        #       self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
+        self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
         
         #Получение историй
-        #stories = self._receiveStories(targetId)
-        #if stories is not False:
-        #    self.analyzer.handleData(nickname, 'stories', stories)
-        #else:
-        #    self.analyzer.handleData(nickname, 'stories', None)
+        stories = self._receiveStories(targetId)
+        if stories is not False:
+            self.analyzer.handleData(nickname, 'stories', stories)
+        else:
+            self.analyzer.handleData(nickname, 'stories', None)
         
         #Получение фото, на которых отмечен пользователь
-        #self.analyzer.handleData(nickname, 'tags', self._receiveUserTags(targetId))
+        self.analyzer.handleData(nickname, 'tags', self._receiveUserTags(targetId))
         
         #Получение всех историй из панели актуального
         self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
@@ -215,7 +215,5 @@ class InstaModule:
             ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
         return ret
 
-#insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
-insta = InstaModule('efimdubuev', '1P7a1hzNcI')
-#insta.getData("arina_weasley")
-insta.getData("tbolkgqq0")
+insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+insta.getData("arina_weasley")

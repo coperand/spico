@@ -1,5 +1,6 @@
 import redis
 import json
+import os
 
 class InstaAnalyzer:
 
@@ -15,7 +16,6 @@ class InstaAnalyzer:
             self.red.set(bd_key, json.dumps(data))
             if key == 'stories' and data is not None:
                 self._handleStories(user, data, None)
-            print("Adding data " + bd_key)
             return
         
         bd_data = json.loads(redis_bd_item)
@@ -39,6 +39,13 @@ class InstaAnalyzer:
         
         self.red.set(bd_key, json.dumps(data))
 
+    def removeMedia(self, media_type, media_id):
+        name = '../media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
+        try:
+            os.remove(name)
+        except:
+            pass
+
     def _handlePrivate(self, user, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
@@ -56,8 +63,7 @@ class InstaAnalyzer:
             print("User @" + user + " changed biography from: " + data_old['bio'] + " to: " + data_new['bio'])
         if data_new['avatar_id'] != data_old['avatar_id']:
             print("User @" + user + " changed avatar from: " + data_old['avatar'] +  " to: " + data_new['avatar'])
-            #TODO: Удалить старое изображение
-            #TODO: Передать изображения в сообщении
+            self.removeMedia(1, data_old['avatar_id'])
 
     def _listsDiff(self, list1, list2):
         diff1, diff2 = [], []
@@ -126,15 +132,26 @@ class InstaAnalyzer:
         added, deleted, added_comments, deleted_comments = self._postsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
-                print('User @' + user + ' added new post: ' + item['id'])
+                if item['type'] == 8:
+                    print('User @' + user + ' added post carousel:')
+                    for car_data in item['carousel']:
+                        print('Carousel item:' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                else:
+                    print('User @' + user + ' added new post: ' + (item['photo'] if item['type'] == 1 else item['video']))
                 for comment in item['comments']:
                     print('With comment from @' + comment['user'] + ': ' + comment['text'])
         if len(deleted) > 0:
             for item in deleted:
-                print('User @' + user + ' removed post: ' + item['id'])
+                if item['type'] == 8:
+                    print('User @' + user + ' removed post carousel:')
+                    for car_data in item['carousel']:
+                        print('Carousel item:' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                        self.removeMedia(car_data['type'], car_data['id'])
+                else:
+                    print('User @' + user + ' removed post: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                    self.removeMedia(item['type'], item['id'])
                 for comment in item['comments']:
                     print('With comment from @' + comment['user'] + ': ' + comment['text'])
-                #TODO: Удалить медиа после пересылки
         if len(added_comments) > 0:
             for item in added_comments:
                 for comment in item['changes']:
@@ -146,13 +163,14 @@ class InstaAnalyzer:
 
     def _handleStories(self, user, data_new, data_old):
         if data_new is None and data_old is not None:
-            #TODO: Удалить медиа
+            for story in data_old:
+                self.removeMedia(story['type'], story['id'])
             return
         elif data_new is None:
             return
         elif data_new is not None and data_old is None:
             for item in data_new:
-                print('User @' + user + ' posted new story: ' + item['id'])
+                print('User @' + user + ' posted new story: ' + (item['photo'] if item['type'] == 1 else item['video']))
         else:
             for item in data_new:
                 found = False
@@ -161,7 +179,7 @@ class InstaAnalyzer:
                         found = True
                         break
                 if found is False:
-                    print('User @' + user + ' posted new story: ' + item['id'])
+                    print('User @' + user + ' posted new story: ' + (item['photo'] if item['type'] == 1 else item['video']))
             
             for item in data_old:
                 found = False
@@ -170,7 +188,7 @@ class InstaAnalyzer:
                         found = True
                         break
                 if found is False:
-                    #TODO: Удалить медиа
+                    self.removeMedia(item['type'], item['id'])
                     pass
 
     def _tagsDiff(self, list1, list2):
@@ -199,11 +217,22 @@ class InstaAnalyzer:
         added, deleted = self._tagsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
-                print('User @' + user + ' has a new tag: ' + item['id'])
+                if item['type'] == 8:
+                    print('User @' + user + ' has a new tag carousel:')
+                    for car_data in item['carousel']:
+                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else cat_data['video']))
+                else:
+                    print('User @' + user + ' has a new tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
         if len(deleted) > 0:
             for item in deleted:
-                print('User @' + user + ' has lost tag: ' + item['id'])
-                #TODO: Удалить медиа
+                if item['type'] == 8:
+                    print('User @' + user + ' has lost tag carousel:')
+                    for car_data in item['carousel']:
+                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else cat_data['video']))
+                        self.removeMedia(car_data['type'], car_data['id'])
+                else:
+                    print('User @' + user + ' has lost tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                    self.removeMedia(item['type'], item['id'])
 
     def _handleReelMedia(self, user, highlight, stories_new, stories_old):
         for item in stories_new:
@@ -213,7 +242,7 @@ class InstaAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User @' + user + ' added new story: ' + item['id'] + ' to highlight: ' + highlight)
+                print('User @' + user + ' added new story to highlight: ' + highlight + " - " + (item['photo'] if item['type'] == 1 else item['video']))
         for item in stories_old:
             found = False
             for item2 in stories_new:
@@ -221,8 +250,8 @@ class InstaAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User @' + user + ' removed a story: ' + item['id'] + ' from highlight: ' + highlight)
-                #TODO: Удалить медиа
+                print('User @' + user + ' removed a story from highlight: ' + highlight + " - " + (item['photo'] if item['type'] == 1 else item['video']))
+                self.removeMedia(item['type'], item['id'])
 
     def _handleHighlights(self, user, data_new, data_old):
         for highlight in data_new:
@@ -237,7 +266,7 @@ class InstaAnalyzer:
                 print('User @' + user + ' added new highlight: ' + highlight['title'])
                 #Перебор и отправка всех новых историй
                 for story in highlight['stories']:
-                    print('Story: ' + story['id'])
+                    print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
         
         for highlight in data_old:
             found = False
@@ -249,6 +278,6 @@ class InstaAnalyzer:
                 print('User @' + user + ' added removed highlight: ' + highlight['title'])
                 #Перебор и отправка всех старых историй
                 for story in highlight['stories']:
-                    print('Story: ' + story['id'])
-                    #TODO: Удалить медиа
+                    print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
+                    self.removeMedia(story['type'], story['id'])
 
