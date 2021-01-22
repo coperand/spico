@@ -25,10 +25,10 @@ class InstaModule:
         #Получение информации об аккаунте и возврат в случае, если он закрытый
         ret = self._receiveProfileInfo(targetId)
         if ret is False:
-            self.analyzer.handleData(nickname, 'private', True)
+            self.analyzer.handleData(nickname, 'private', {'bool': True})
             return
         else:
-            self.analyzer.handleData(nickname, 'private', False)
+            self.analyzer.handleData(nickname, 'private', {'bool': False})
         
         #self.analyzer.handleData(nickname, 'profile', ret)
         
@@ -36,7 +36,7 @@ class InstaModule:
         #self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
         
         #Получение публикаций (с комментариями)
-        #self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
+        #       self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
         
         #Получение историй
         #stories = self._receiveStories(targetId)
@@ -217,4 +217,5 @@ class InstaModule:
 
 #insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
 insta = InstaModule('efimdubuev', '1P7a1hzNcI')
-insta.getData("arina_weasley")
+#insta.getData("arina_weasley")
+insta.getData("tbolkgqq0")
