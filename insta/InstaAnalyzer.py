@@ -39,7 +39,7 @@ class InstaAnalyzer:
         
         self.red.set(bd_key, json.dumps(data))
 
-    def removeMedia(self, media_type, media_id):
+    def _removeMedia(self, media_type, media_id):
         name = '../media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
         try:
             os.remove(name)
@@ -63,7 +63,7 @@ class InstaAnalyzer:
             print("User @" + user + " changed biography from: " + data_old['bio'] + " to: " + data_new['bio'])
         if data_new['avatar_id'] != data_old['avatar_id']:
             print("User @" + user + " changed avatar from: " + data_old['avatar'] +  " to: " + data_new['avatar'])
-            self.removeMedia(1, data_old['avatar_id'])
+            self._removeMedia(1, data_old['avatar_id'])
 
     def _listsDiff(self, list1, list2):
         diff1, diff2 = [], []
@@ -146,10 +146,10 @@ class InstaAnalyzer:
                     print('User @' + user + ' removed post carousel:')
                     for car_data in item['carousel']:
                         print('Carousel item:' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
-                        self.removeMedia(car_data['type'], car_data['id'])
+                        self._removeMedia(car_data['type'], car_data['id'])
                 else:
                     print('User @' + user + ' removed post: ' + (item['photo'] if item['type'] == 1 else item['video']))
-                    self.removeMedia(item['type'], item['id'])
+                    self._removeMedia(item['type'], item['id'])
                 for comment in item['comments']:
                     print('With comment from @' + comment['user'] + ': ' + comment['text'])
         if len(added_comments) > 0:
@@ -164,7 +164,7 @@ class InstaAnalyzer:
     def _handleStories(self, user, data_new, data_old):
         if data_new is None and data_old is not None:
             for story in data_old:
-                self.removeMedia(story['type'], story['id'])
+                self._removeMedia(story['type'], story['id'])
             return
         elif data_new is None:
             return
@@ -188,7 +188,7 @@ class InstaAnalyzer:
                         found = True
                         break
                 if found is False:
-                    self.removeMedia(item['type'], item['id'])
+                    self._removeMedia(item['type'], item['id'])
                     pass
 
     def _tagsDiff(self, list1, list2):
@@ -229,10 +229,10 @@ class InstaAnalyzer:
                     print('User @' + user + ' has lost tag carousel:')
                     for car_data in item['carousel']:
                         print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else cat_data['video']))
-                        self.removeMedia(car_data['type'], car_data['id'])
+                        self._removeMedia(car_data['type'], car_data['id'])
                 else:
                     print('User @' + user + ' has lost tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
-                    self.removeMedia(item['type'], item['id'])
+                    self._removeMedia(item['type'], item['id'])
 
     def _handleReelMedia(self, user, highlight, stories_new, stories_old):
         for item in stories_new:
@@ -251,7 +251,7 @@ class InstaAnalyzer:
                     break
             if found is False:
                 print('User @' + user + ' removed a story from highlight: ' + highlight + " - " + (item['photo'] if item['type'] == 1 else item['video']))
-                self.removeMedia(item['type'], item['id'])
+                self._removeMedia(item['type'], item['id'])
 
     def _handleHighlights(self, user, data_new, data_old):
         for highlight in data_new:
@@ -279,5 +279,5 @@ class InstaAnalyzer:
                 #Перебор и отправка всех старых историй
                 for story in highlight['stories']:
                     print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
-                    self.removeMedia(story['type'], story['id'])
+                    self._removeMedia(story['type'], story['id'])
 

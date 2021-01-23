@@ -1,7 +1,7 @@
 import vk_api
 import urllib.request
 import os.path
-
+from VkAnalyzer import VkAnalyzer
 
 class VkModule:
 
@@ -11,35 +11,36 @@ class VkModule:
         vk_session.auth()
         self.vk = vk_session.get_api()
         #TODO: Обработка исключения в вызывающем коде
+        
+        self.analyzer = VkAnalyzer()
 
     def getData(self, targetId):
         
         #Получаем информацию о пользователе и проверяем аккаунт на закрытость
         ret = self._receiveUserInfo(targetId)
-        if ret is False:
-            #TODO: Оповестить о закрытости аккаунта
+        username = ret['first_name'] + ' ' + ret['last_name']
+        if ret['is_closed'] is True:
+            self.analyzer.handleData(username, targetId, 'private', {'bool': True})
             return
-        #print(ret)
+        else:
+            self.analyzer.handleData(username, targetId, 'private', {'bool': False})
+        
+        #self.analyzer.handleData(username, targetId, 'profile', ret)
         
         #Получаем подписки и группы
-        #ret = self._receiveAllSubscriptions(targetId)
-        #print(ret)
+        #self.analyzer.handleData(username, targetId, 'subscriptions', self._receiveAllSubscriptions(targetId))
         
         #Получаем друзей
-        #ret = self._receiveFriends(targetId)
-        #print(ret)
+        #self.analyzer.handleData(username, targetId, 'friends', self._receiveFriends(targetId))
         
         #Получаем видео
-        #ret = self._receiveVideos(targetId)
-        #print(ret)
+        #self.analyzer.handleData(username, targetId, 'videos', self._receiveVideos(targetId))
         
         #Получаем фотографии(с комментариями)
-        ret = self._receiveAllPhotos(targetId)
-        #print(ret)
+        #self.analyzer.handleData(username, targetId, 'photos', self._receiveAllPhotos(targetId))
         
         #Получаем записи на стене (с комментариями)
-        ret = self._receivePosts(targetId)
-        #print(ret)
+        self.analyzer.handleData(username, targetId, 'posts', self._receivePosts(targetId))
 
     def _saveMedia(self, media_type, media_id, url):
         name = '../media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
@@ -57,16 +58,13 @@ class VkModule:
         connections, exports, activities, interests, music, movies, tv, books, games, about, quotes, career''')[0]
         ret = {}
         
-        if response['is_closed'] == True:
-            print("Account is closed")
-            return False
-        
+        ret['is_closed'] = response['is_closed']
         ret['first_name'] = response['first_name']
         ret['last_name'] = response['last_name']
-        ret['city'] = response.setdefault('city', 'None')
-        if ret['city'] != 'None':
+        ret['city'] = response.setdefault('city', '')
+        if ret['city'] != '':
             ret['city'] = response['city']['title']
-        ret['status'] = 'None' if response['site'] == '' else response['site']
+        ret['status'] = response['status']
         return ret
 
     def _receiveSubscriptions(self, targetId):
@@ -143,7 +141,7 @@ class VkModule:
         
         ret = []
         for item in videos:
-            ret.append({'title': item['title'], 'url': item['player']})
+            ret.append({'title': item['title'], 'url': item.setdefault('player', '')})
         return ret
 
     def _receivePhotoComments(self, targetId, photoId):
@@ -233,6 +231,7 @@ class VkModule:
         for item in posts:
             ret_item = {}
             ret_item['text'] = item['text']
+            ret_item['id'] = item['id']
             ret_item['attachments'] = []
             for attachment in item.setdefault('attachments', []):
                 if attachment['type'] == 'photo':
@@ -247,4 +246,3 @@ class VkModule:
 
 vk = VkModule('8801923291704', 'CM8Ipp69w')
 vk.getData('78961353')
-
