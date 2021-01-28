@@ -6,6 +6,9 @@ from vk.vk import VkModule
 
 bot = telebot.TeleBot('TOKEN')
 
+insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+vk = VkModule('8801923291704', 'CM8Ipp69w')
+
 white_list = ['coperand']
 user_list = {}
 
@@ -21,10 +24,14 @@ def send_menu(user_id, message):
     bot.send_message(user_id, text=message, reply_markup=keyboard)
 
 def add_insta_username(message):
-    #TODO: Проверить имя пользователя
-
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
+        return
+
+    #Проверяем имя пользователя
+    if insta.checkName(message.text) is False:
+        msg = bot.send_message(message.from_user.id, text="Имя пользователя некорректно. Введите другое или /cancel для отмены")
+        bot.register_next_step_handler(msg, add_insta_username)
         return
 
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
@@ -52,16 +59,21 @@ def del_insta_username(message):
         #TODO: Удалить медиа из бд
 
 def add_vk_id(message):
-    #TODO: Проверить имя пользователя
-
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
+        return
+
+    #Проверяем имя пользователя
+    username = vk.checkId(message.text)
+    if username is False:
+        msg = bot.send_message(message.from_user.id, text="Идентификатор пользователя некорректен. Введите другой или /cancel для отмены")
+        bot.register_next_step_handler(msg, add_vk_id)
         return
 
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['vk']:
         user_dict['vk'].append(message.text)
-        bot.send_message(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых")
+        bot.send_message(message.from_user.id, "Пользователь " + username + ' (' + message.text + ')' + " добавлен в список отслеживаемых")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
     else:
         msg = bot.send_message(message.from_user.id, text="Пользователь уже имеется в списке отслеживаемых. Введите другого или /cancel для отмены")
@@ -147,17 +159,17 @@ def callback_worker(call):
         print_str = 'Список отслеживаемых пользователей:'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
         for item in user_dict['vk']:
-            print_str += "\n" + item
+            username = vk.checkId(item)
+            print_str += "\n" + username + " (" + item + ")"
         bot.send_message(call.message.chat.id, print_str)
         send_menu(call.message.chat.id, "Какие еще действия вы бы хотели совершить?")
-        #TODO: Вывод имен?
 
     if call.data == 'del_user_vk':
-        print_str = 'Введите идентификатор пользователя, которого вы хотите удалить из следующего списка (или /cancel для отмены):'
+        print_str = 'Введите идентификатор пользователя (число в скобках), которого вы хотите удалить из следующего списка (или /cancel для отмены):'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
         for item in user_dict['vk']:
-            print_str += "\n" + item
-        #TODO: Вывод имен?
+            username = vk.checkId(item)
+            print_str += "\n" + username + " (" + item + ")"
         msg = bot.send_message(call.message.chat.id, print_str)
         bot.register_next_step_handler(msg, del_vk_id)
 
@@ -174,16 +186,23 @@ def text_messages_handler(message):
 
     send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
 
-insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
 #insta.getData("arina_weasley")
-vk = VkModule('8801923291704', 'CM8Ipp69w')
 #vk.getData('78961353')
 
 polling_thread = Thread(target=bot.polling, args=(True, 0,))
 polling_thread.start()
 
-#Тестирование отправки сообщений по инициативе бота
 #chatId = 374113718
-#while 1:
-#    time.sleep(3)
-#    bot.send_message(chatId, "Тест инициативной передачи")
+while 1:
+    for user_name in user_list:
+        print(user_list[user_name])
+        print()
+        print(type(user_list[user_name]))
+        for item in user_list[user_name]['insta']:
+            #insta.getData(item)
+            pass
+        for item in user_list[user_name]['vk']:
+            #vk.getData(item)
+            pass
+    #TODO: Подобрать таймаут
+    time.sleep(3)

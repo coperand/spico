@@ -15,6 +15,12 @@ class InstaModule:
 
         self.analyzer = InstaAnalyzer()
 
+    def checkName(self, nickname):
+        if self._getUserId(nickname) is False:
+            return False
+        else:
+            return True
+
     def getData(self, nickname):
 
         #Получение идентификатора пользователя по имени
@@ -64,7 +70,11 @@ class InstaModule:
 
     def _getUserId(self, username):
         '''Получаем id пользователя по имени'''
-        return self.client.getTotalSearchUsername(username)['pk']
+        result = self.client.getTotalSearchUsername(username)
+        if result is False:
+            return False
+        else:
+            return result['pk']
 
     def _receiveProfileInfo(self, targetId):
         '''Получаем информацию об аккаунте'''

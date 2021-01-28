@@ -360,8 +360,10 @@ class InstagramAPI:
         return self.LastJson['user']
 
     def getTotalSearchUsername(self, usernameName):
-        self.searchUsername(usernameName)
-        return self.LastJson['user']
+        if self.searchUsername(usernameName) is False:
+            return False
+        else:
+            return self.LastJson['user']
 
     def getTotalMediaComments(self, mediaId):
         comments = []

@@ -14,8 +14,14 @@ class VkModule:
 
         self.analyzer = VkAnalyzer()
 
-    def getData(self, targetId):
+    def checkId(self, targetId):
+        ret = self._receiveUserInfo(targetId)
+        if ret is False:
+            return False
+        else:
+            return ret['first_name'] + " " + ret['last_name']
 
+    def getData(self, targetId):
         #Получаем информацию о пользователе и проверяем аккаунт на закрытость
         ret = self._receiveUserInfo(targetId)
         username = ret['first_name'] + ' ' + ret['last_name']
@@ -54,10 +60,14 @@ class VkModule:
         out.close()
 
     def _receiveUserInfo(self, targetId):
-        response = self.vk.users.get(user_ids=targetId, fields='''sex, bdate, city, home_town, online, contacts, site, education, universities, schools, status, last_seen, followers_count, occupation, relatives, relation, personal,
-        connections, exports, activities, interests, music, movies, tv, books, games, about, quotes, career''')[0]
-        ret = {}
+        response = {}
+        try:
+            response = self.vk.users.get(user_ids=targetId, fields='''sex, bdate, city, home_town, online, contacts, site, education, universities, schools, status, last_seen, followers_count, occupation, relatives, relation, personal,
+            connections, exports, activities, interests, music, movies, tv, books, games, about, quotes, career''')[0]
+        except:
+            return False
 
+        ret = {}
         ret['is_closed'] = response['is_closed']
         ret['first_name'] = response['first_name']
         ret['last_name'] = response['last_name']
