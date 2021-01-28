@@ -1,22 +1,17 @@
 ﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import requests
-import random
 import json
 import hashlib
 import hmac
-import urllib
 import uuid
 import time
-import copy
-import math
 import sys
 from datetime import datetime
 import calendar
-import os
+import urllib
 import urllib.parse
-from requests_toolbelt import MultipartEncoder
+import requests
 
 # Turn off InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -38,16 +33,14 @@ class InstagramAPI:
 
     # username            # Instagram username
     # password            # Instagram password
-    # debug               # Debug
     # uuid                # UUID
     # device_id           # Device ID
     # username_id         # Username ID
     # token               # _csrftoken
     # isLoggedIn          # Session status
     # rank_token          # Rank token
-    # IGDataPath          # Data storage path
 
-    def __init__(self, username, password, debug=False, IGDataPath=None):
+    def __init__(self, username, password):
         m = hashlib.md5()
         m.update(username.encode('utf-8') + password.encode('utf-8'))
         self.device_id = self.generateDeviceId(m.hexdigest())
@@ -74,8 +67,8 @@ class InstagramAPI:
             self.s.proxies.update(proxies)
 
     def login(self, force=False):
-        if (not self.isLoggedIn or force):
-            if (self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True)):
+        if not self.isLoggedIn or force:
+            if self.SendRequest('si/fetch_headers/?challenge_type=signup&guid=' + self.generateUUID(False), None, True):
 
                 data = {'phone_id': self.generateUUID(True),
                         '_csrftoken': self.LastResponse.cookies['csrftoken'],
@@ -85,7 +78,7 @@ class InstagramAPI:
                         'password': self.password,
                         'login_attempt_count': '0'}
 
-                if (self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True)):
+                if self.SendRequest('accounts/login/', self.generateSignature(json.dumps(data)), True):
                     self.isLoggedIn = True
                     self.username_id = self.LastJson["logged_in_user"]["pk"]
                     self.rank_token = "%s_%s" % (self.username_id, self.uuid)
@@ -94,6 +87,12 @@ class InstagramAPI:
                     self.syncFeatures()
                     #print("Login success!\n")
                     return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return True
 
     def syncFeatures(self):
         data = json.dumps({'_uuid': self.uuid,
@@ -223,7 +222,7 @@ class InstagramAPI:
         if sys.version_info.major == 3:
             url += urllib.parse.urlencode(query_string)
         else:
-            url += urllib.urlencode(query_string)
+            url += urllib.parse.urlencode(query_string)
         return self.SendRequest(url)
 
     def getSelfUsersFollowing(self):
@@ -237,7 +236,7 @@ class InstagramAPI:
         for item in list2:
             if item not in list1:
                 diff2.append(item)
-        
+
         return diff1, diff2
 
     def getUserFollowers(self, usernameId, maxid=''):
@@ -257,7 +256,7 @@ class InstagramAPI:
             try:
                 parsedData = urllib.parse.quote(data)
             except AttributeError:
-                parsedData = urllib.quote(data)
+                parsedData = urllib.parse.quote(data)
         else:
             parsedData = data
         return 'ig_sig_key_version=' + self.SIG_KEY_VERSION + '&signed_body=' + hmac.new(self.IG_SIG_KEY.encode('utf-8'), data.encode('utf-8'), hashlib.sha256).hexdigest() + '.' + parsedData
@@ -268,9 +267,9 @@ class InstagramAPI:
         m.update(seed.encode('utf-8') + volatile_seed.encode('utf-8'))
         return 'android-' + m.hexdigest()[:16]
 
-    def generateUUID(self, type):
+    def generateUUID(self, _type):
         generated_uuid = str(uuid.uuid4())
-        if (type):
+        if _type:
             return generated_uuid
         else:
             return generated_uuid.replace('-', '')
@@ -294,7 +293,7 @@ class InstagramAPI:
 
         while True:
             try:
-                if (post is not None):
+                if post is not None:
                     response = self.s.post(self.API_URL + endpoint, data=post, verify=verify)
                 else:
                     response = self.s.get(self.API_URL + endpoint, verify=verify)
@@ -309,7 +308,6 @@ class InstagramAPI:
             return True
         else:
             print("Request return " + str(response.status_code) + " error!")
-            # for debugging
             try:
                 self.LastResponse = response
                 self.LastJson = json.loads(response.text)
@@ -331,11 +329,10 @@ class InstagramAPI:
                     followers.append(item['username'])
                 next_max_id = temp["next_max_id"]
                 if temp["big_list"] is False:
-                    break
                     return followers
-            except KeyError as e:
+            except KeyError:
                 break
-        
+
         return followers
 
     def getTotalFollowings(self, usernameId):
@@ -350,7 +347,7 @@ class InstagramAPI:
                 next_max_id = temp["next_max_id"]
                 if temp["big_list"] is False:
                     return followings
-            except KeyError as e:
+            except KeyError:
                 break
         return followings
 
@@ -361,7 +358,7 @@ class InstagramAPI:
     def getTotalUsernameInfo(self, usernameId):
         self.getUsernameInfo(usernameId)
         return self.LastJson['user']
-    
+
     def getTotalSearchUsername(self, usernameName):
         self.searchUsername(usernameName)
         return self.LastJson['user']
@@ -373,8 +370,8 @@ class InstagramAPI:
         try:
             for item in temp["comments"]:
                 comments.append(item)
-        except KeyError as e:
-                pass
+        except KeyError:
+            pass
         return comments
 
     def getTotalUserTags(self, usernameId):
@@ -389,7 +386,7 @@ class InstagramAPI:
                 next_max_id = temp["next_max_id"]
                 if temp["more_available"] is False:
                     return user_tags
-            except KeyError as e:
+            except KeyError:
                 break
         return user_tags
 
@@ -403,26 +400,12 @@ class InstagramAPI:
                 for item in temp["items"]:
                     user_feed.append(item)
                 next_max_id = temp["next_max_id"]
-            
+
                 if temp["more_available"] is False:
                     return user_feed
-            except KeyError as e:
+            except KeyError:
                 break
         return user_feed
-
-    def getTotalLikedMedia(self, scan_rate=1):
-        next_id = ''
-        liked_items = []
-        for x in range(0, scan_rate):
-            temp = self.getLikedMedia(next_id)
-            temp = self.LastJson
-            try:
-                next_id = temp["next_max_id"]
-                for item in temp["items"]:
-                    liked_items.append(item)
-            except KeyError as e:
-                break
-        return liked_items
 
     def getTotalUserHighlights(self, usernameId):
         highlights = []
@@ -431,8 +414,8 @@ class InstagramAPI:
         try:
             for item in temp['tray']:
                 highlights.append(item)
-        except KeyError as e:
-                pass
+        except KeyError:
+            pass
         return highlights
 
     def getTotalReelMedia(self, reelId):
@@ -442,6 +425,6 @@ class InstagramAPI:
         try:
             for item in temp['reels'][reelId]['items']:
                 reel_media.append(item)
-        except KeyError as e:
-                pass
+        except KeyError:
+            pass
         return reel_media

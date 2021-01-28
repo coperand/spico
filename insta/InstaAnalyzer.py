@@ -1,6 +1,6 @@
-import redis
 import json
 import os
+import redis
 
 class InstaAnalyzer:
 
@@ -8,26 +8,23 @@ class InstaAnalyzer:
         self.red = redis.Redis()
 
     def handleData(self, user, key, data):
-        
         bd_key = 'insta-' + user + '-' + key
         redis_bd_item = self.red.get(bd_key)
-        
+
         if redis_bd_item is None:
             self.red.set(bd_key, json.dumps(data))
             if key == 'stories' and data is not None:
                 self._handleStories(user, data, None)
             return
-        
+
         bd_data = json.loads(redis_bd_item)
-        
+
         if key == 'private':
             self._handlePrivate(user, data, bd_data)
         elif key == 'profile':
             self._handleProfile(user, data, bd_data)
         elif key == 'followings':
             self._handleFollowings(user, data, bd_data)
-        elif key == 'followers':
-            self._handleFollowers(user, data, bd_data)
         elif key == 'posts':
             self._handlePosts(user, data, bd_data)
         elif key == 'stories':
@@ -36,7 +33,7 @@ class InstaAnalyzer:
             self._handleTags(user, data, bd_data)
         elif key == 'highlights':
             self._handleHighlights(user, data, bd_data)
-        
+
         self.red.set(bd_key, json.dumps(data))
 
     def _removeMedia(self, media_type, media_id):
@@ -49,7 +46,7 @@ class InstaAnalyzer:
     def _handlePrivate(self, user, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
-        if data_new['bool'] == True:
+        if data_new['bool'] is True:
             print("User @" + user + " closed account")
         else:
             print("User @" + user + " opened account")
@@ -73,7 +70,7 @@ class InstaAnalyzer:
         for item in list2:
             if item not in list1:
                 diff2.append(item)
-        
+
         return diff1, diff2
 
     def _handleFollowings(self, user, data_new, data_old):
@@ -94,11 +91,11 @@ class InstaAnalyzer:
         for item in post1['comments']:
             if item not in post2['comments']:
                 diff1.append(item)
-        
+
         for item in post2['comments']:
             if item not in post1['comments']:
                 diff2.append(item)
-        
+
         return diff1, diff2
 
     def _postsDiff(self, list1, list2):
@@ -116,7 +113,7 @@ class InstaAnalyzer:
                     break
             if found is False:
                 diff1.append(item)
-        
+
         for item in list2:
             found = False
             for item2 in list1:
@@ -125,7 +122,7 @@ class InstaAnalyzer:
                     break
             if found is False:
                 diff2.append(item)
-        
+
         return diff1, diff2, comments_diff1, comments_diff2
 
     def _handlePosts(self, user, data_new, data_old):
@@ -180,7 +177,7 @@ class InstaAnalyzer:
                         break
                 if found is False:
                     print('User @' + user + ' posted new story: ' + (item['photo'] if item['type'] == 1 else item['video']))
-            
+
             for item in data_old:
                 found = False
                 for item2 in data_new:
@@ -189,7 +186,6 @@ class InstaAnalyzer:
                         break
                 if found is False:
                     self._removeMedia(item['type'], item['id'])
-                    pass
 
     def _tagsDiff(self, list1, list2):
         diff1 , diff2 = [], []
@@ -201,7 +197,7 @@ class InstaAnalyzer:
                     break
             if found is False:
                 diff1.append(item)
-        
+
         for item in list2:
             found = False
             for item2 in list1:
@@ -210,7 +206,7 @@ class InstaAnalyzer:
                     break
             if found is False:
                 diff2.append(item)
-        
+
         return diff1, diff2
 
     def _handleTags(self, user, data_new, data_old):
@@ -220,7 +216,7 @@ class InstaAnalyzer:
                 if item['type'] == 8:
                     print('User @' + user + ' has a new tag carousel:')
                     for car_data in item['carousel']:
-                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else cat_data['video']))
+                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
                 else:
                     print('User @' + user + ' has a new tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
         if len(deleted) > 0:
@@ -228,7 +224,7 @@ class InstaAnalyzer:
                 if item['type'] == 8:
                     print('User @' + user + ' has lost tag carousel:')
                     for car_data in item['carousel']:
-                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else cat_data['video']))
+                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
                         self._removeMedia(car_data['type'], car_data['id'])
                 else:
                     print('User @' + user + ' has lost tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
@@ -267,7 +263,7 @@ class InstaAnalyzer:
                 #Перебор и отправка всех новых историй
                 for story in highlight['stories']:
                     print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
-        
+
         for highlight in data_old:
             found = False
             for highlight_new in data_new:
@@ -280,4 +276,3 @@ class InstaAnalyzer:
                 for story in highlight['stories']:
                     print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
                     self._removeMedia(story['type'], story['id'])
-

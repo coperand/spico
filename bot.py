@@ -13,16 +13,16 @@ def send_menu(user_id, message):
     keyboard.add(key_del_user)
     key_print_users = telebot.types.InlineKeyboardButton(text='Вывести пользователей', callback_data='print_users')
     keyboard.add(key_print_users)
-    
+
     bot.send_message(user_id, text=message, reply_markup=keyboard)
 
 def add_insta_username(message):
     #TODO: Проверить имя пользователя
-    
+
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
-    
+
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['insta']:
         user_dict['insta'].append(message.text)
@@ -35,7 +35,7 @@ def del_insta_username(message):
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
-    
+
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['insta']:
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
@@ -47,11 +47,11 @@ def del_insta_username(message):
 
 def add_vk_id(message):
     #TODO: Проверить имя пользователя
-    
+
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
-    
+
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['vk']:
         user_dict['vk'].append(message.text)
@@ -64,7 +64,7 @@ def del_vk_id(message):
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
-    
+
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['vk']:
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
@@ -83,7 +83,7 @@ def ask_platform_worker(call):
         keyboard.add(key_vk)
         key_return = telebot.types.InlineKeyboardButton(text='Вернуться', callback_data='return')
         keyboard.add(key_return)
-        
+
         bot.send_message(call.message.chat.id, text="Выберите платформу, пользователя которой вы хотите добавить", reply_markup=keyboard)
     if call.data == 'del_user':
         keyboard = telebot.types.InlineKeyboardMarkup()
@@ -93,7 +93,7 @@ def ask_platform_worker(call):
         keyboard.add(key_vk)
         key_return = telebot.types.InlineKeyboardButton(text='Вернуться', callback_data='return')
         keyboard.add(key_return)
-        
+
         bot.send_message(call.message.chat.id, text="Выберите платформу, пользователя которой вы хотите удалить", reply_markup=keyboard)
     if call.data == 'print_users':
         keyboard = telebot.types.InlineKeyboardMarkup()
@@ -103,29 +103,29 @@ def ask_platform_worker(call):
         keyboard.add(key_vk)
         key_return = telebot.types.InlineKeyboardButton(text='Вернуться', callback_data='return')
         keyboard.add(key_return)
-        
+
         bot.send_message(call.message.chat.id, text="Выберите платформу, пользователей которой вы хотите вывести", reply_markup=keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
     if call.data == 'add_user' or call.data == 'del_user' or call.data == 'print_users':
         ask_platform_worker(call)
-    
+
     if call.data == 'add_user_insta':
         msg = bot.send_message(call.message.chat.id, text="Введите имя пользователя или /cancel для отмены")
         bot.register_next_step_handler(msg, add_insta_username)
-    
+
     if call.data == 'add_user_vk':
         msg = bot.send_message(call.message.chat.id, text="Введите id пользователя (или /cancel для отмены)")
         bot.register_next_step_handler(msg, add_vk_id)
-    
+
     if call.data == 'print_users_insta':
         print_str = 'Список отслеживаемых пользователей:'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
         for item in user_dict['insta']:
             print_str += "\n" + item
         send_menu(call.message.chat.id, print_str + "\nКакие еще действия вы бы хотели совершить?")
-    
+
     if call.data == 'del_user_insta':
         print_str = 'Введите имя пользователя, которого вы хотите удалить из следующего списка или /cancel для отмены:'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
@@ -133,7 +133,7 @@ def callback_worker(call):
             print_str += "\n" + item
         msg = bot.send_message(call.message.chat.id, print_str)
         bot.register_next_step_handler(msg, del_insta_username)
-    
+
     if call.data == 'print_users_vk':
         print_str = 'Список отслеживаемых пользователей:'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
@@ -141,7 +141,7 @@ def callback_worker(call):
             print_str += "\n" + item
         send_menu(call.message.chat.id, print_str + "\nКакие еще действия вы бы хотели совершить?")
         #TODO: Вывод имен?
-    
+
     if call.data == 'del_user_vk':
         print_str = 'Введите идентификатор пользователя, которого вы хотите удалить из следующего списка (или /cancel для отмены):'
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
@@ -150,10 +150,10 @@ def callback_worker(call):
         #TODO: Вывод имен?
         msg = bot.send_message(call.message.chat.id, print_str)
         bot.register_next_step_handler(msg, del_vk_id)
-    
+
     if call.data == 'return':
         send_menu(call.message.chat.id, "Бот активен. Какие действия вы бы хотели совершить?")
-    
+
     bot.answer_callback_query(call.id)
 
 @bot.message_handler(content_types=['text'])
@@ -161,7 +161,7 @@ def text_messages_handler(message):
     if message.from_user.username not in white_list:
         bot.send_message(message.from_user.id, "Доступ запрещен")
         return
-    
+
     send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
 
 bot.polling(none_stop=True, interval=0)

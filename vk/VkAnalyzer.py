@@ -1,6 +1,6 @@
-import redis
 import json
 import os
+import redis
 
 class VkAnalyzer:
 
@@ -8,16 +8,16 @@ class VkAnalyzer:
         self.red = redis.Redis()
 
     def handleData(self, user, uid, key, data):
-        
+
         bd_key = 'vk-' + uid + '-' + key
         redis_bd_item = self.red.get(bd_key)
-        
+
         if redis_bd_item is None:
             self.red.set(bd_key, json.dumps(data))
             return
-        
+
         bd_data = json.loads(redis_bd_item)
-        
+
         if key == 'private':
             self._handlePrivate(user, data, bd_data)
         elif key == 'profile':
@@ -32,7 +32,7 @@ class VkAnalyzer:
             self._handlePhotos(user, data, bd_data)
         elif key == 'posts':
             self._handlePosts(user, data, bd_data)
-        
+
         self.red.set(bd_key, json.dumps(data))
 
     def _removeMedia(self, media_type, media_id):
@@ -45,7 +45,7 @@ class VkAnalyzer:
     def _handlePrivate(self, user, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
-        if data_new['bool'] == True:
+        if data_new['bool'] is True:
             print("User " + user + " closed account")
         else:
             print("User " + user + " opened account")
@@ -68,7 +68,7 @@ class VkAnalyzer:
         for item in list2:
             if item not in list1:
                 diff2.append(item)
-        
+
         return diff1, diff2
 
     def _handleSubscriptions(self, user, data_new, data_old):
@@ -179,7 +179,7 @@ class VkAnalyzer:
                     print('Photo - ' + photo['photo'])
                     for comment in photo['comments']:
                         print('With comment: ' + comment)
-        
+
         for album in data_old:
             found = False
             for album_new in data_new:
@@ -241,4 +241,3 @@ class VkAnalyzer:
                     self._removeMedia(1, str(photo['id']))
                 for comment in item['comments']:
                     print('With comment: ' + comment)
-

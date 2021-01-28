@@ -1,6 +1,6 @@
-import vk_api
 import urllib.request
 import os.path
+import vk_api
 from VkAnalyzer import VkAnalyzer
 
 class VkModule:
@@ -11,11 +11,11 @@ class VkModule:
         vk_session.auth()
         self.vk = vk_session.get_api()
         #TODO: Обработка исключения в вызывающем коде
-        
+
         self.analyzer = VkAnalyzer()
 
     def getData(self, targetId):
-        
+
         #Получаем информацию о пользователе и проверяем аккаунт на закрытость
         ret = self._receiveUserInfo(targetId)
         username = ret['first_name'] + ' ' + ret['last_name']
@@ -24,21 +24,21 @@ class VkModule:
             return
         else:
             self.analyzer.handleData(username, targetId, 'private', {'bool': False})
-        
+
         #self.analyzer.handleData(username, targetId, 'profile', ret)
-        
+
         #Получаем подписки и группы
         #self.analyzer.handleData(username, targetId, 'subscriptions', self._receiveAllSubscriptions(targetId))
-        
+
         #Получаем друзей
         #self.analyzer.handleData(username, targetId, 'friends', self._receiveFriends(targetId))
-        
+
         #Получаем видео
         #self.analyzer.handleData(username, targetId, 'videos', self._receiveVideos(targetId))
-        
+
         #Получаем фотографии(с комментариями)
         #self.analyzer.handleData(username, targetId, 'photos', self._receiveAllPhotos(targetId))
-        
+
         #Получаем записи на стене (с комментариями)
         self.analyzer.handleData(username, targetId, 'posts', self._receivePosts(targetId))
 
@@ -47,7 +47,7 @@ class VkModule:
         #Проверка наличия файла с таким именем
         if os.path.exists(name):
             return
-        
+
         img = urllib.request.urlopen(url).read()
         out = open(name, "wb")
         out.write(img)
@@ -57,7 +57,7 @@ class VkModule:
         response = self.vk.users.get(user_ids=targetId, fields='''sex, bdate, city, home_town, online, contacts, site, education, universities, schools, status, last_seen, followers_count, occupation, relatives, relation, personal,
         connections, exports, activities, interests, music, movies, tv, books, games, about, quotes, career''')[0]
         ret = {}
-        
+
         ret['is_closed'] = response['is_closed']
         ret['first_name'] = response['first_name']
         ret['last_name'] = response['last_name']
@@ -73,10 +73,10 @@ class VkModule:
         while True:
             response = self.vk.users.getSubscriptions(user_id=targetId,  count=200, offset=offset, extended=1)
             subscriptions.extend(response['items'])
-            if(len(response['items']) < 200):
+            if len(response['items']) < 200:
                 break
             offset += 200
-        
+
         result = []
         for item in subscriptions:
             if item['type'] == 'page':
@@ -93,22 +93,22 @@ class VkModule:
         while True:
             response = self.vk.groups.get(user_id=targetId, count=1000, offset=offset, extended=1)
             groups.extend(response['items'])
-            if(len(response['items']) < 1000):
+            if len(response['items']) < 1000:
                 break
             offset += 1000
-        
+
         result = []
         for item in groups:
             result.append(item['name'])
-        
+
         return result
-    
+
     def _receiveAllSubscriptions(self, targetId):
         x = self._receiveSubscriptions(targetId)
         y = self._receiveGroups(targetId)
         diff = list(set(y).difference(set(x)))
         x.extend(diff)
-        
+
         ret = []
         for item in x:
             ret.append(item)
@@ -120,10 +120,10 @@ class VkModule:
         while True:
             response = self.vk.friends.get(user_id=targetId, count=5000, offset=offset, fields='sex, city')
             friends.extend(response['items'])
-            if(len(response['items']) < 5000):
+            if len(response['items']) < 5000:
                 break
             offset += 5000
-            
+
         ret = []
         for item in friends:
             ret.append({'first_name': item['first_name'], 'last_name': item['last_name'], 'sex': "M" if item['sex'] == 2 else "F"})
@@ -135,10 +135,10 @@ class VkModule:
         while True:
             response = self.vk.video.get(owner_id=targetId, count=100, offset=offset)
             videos.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         ret = []
         for item in videos:
             ret.append({'title': item['title'], 'url': item.setdefault('player', '')})
@@ -150,10 +150,10 @@ class VkModule:
         while True:
             response = self.vk.photos.getComments(owner_id=targetId, count=100, offset=offset, photo_id=photoId)
             comments.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         ret = []
         for item in comments:
             ret.append(item['text'])
@@ -165,10 +165,10 @@ class VkModule:
         while True:
             response = self.vk.photos.getAlbums(owner_id=targetId, count=100, offset=offset, need_system=1)
             albums.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         return albums
 
     def _receiveAlbumItems(self, targetId, albumId):
@@ -177,10 +177,10 @@ class VkModule:
         while True:
             response = self.vk.photos.get(owner_id=targetId, count=100, extended=1, offset=offset, album_id=albumId)
             photos.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         ret = []
         for item in photos:
             ret_item = {}
@@ -193,10 +193,10 @@ class VkModule:
                 ret_item['comments'] = []
             ret.append(ret_item)
         return ret
-    
+
     def _receiveAllPhotos(self, targetId):
         albums = self._receiveAlbums(targetId)
-        
+
         ret = []
         for album in albums:
             ret.append({'title': album['title'], 'items': self._receiveAlbumItems(targetId, album['id'])})
@@ -208,10 +208,10 @@ class VkModule:
         while True:
             response = self.vk.wall.getComments(owner_id=targetId, count=100, offset=offset, post_id=postId)
             comments.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         ret = []
         for item in comments:
             ret.append(item['text'])
@@ -223,10 +223,10 @@ class VkModule:
         while True:
             response = self.vk.wall.get(owner_id=targetId, count=100, offset=offset)
             posts.extend(response['items'])
-            if(len(response['items']) < 100):
+            if len(response['items']) < 100:
                 break
             offset += 100
-        
+
         ret = []
         for item in posts:
             ret_item = {}
