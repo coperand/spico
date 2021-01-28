@@ -1,7 +1,7 @@
 import urllib.request
 import os.path
-import InstagramAPI as iAPI
-from InstaAnalyzer import InstaAnalyzer
+import insta.InstagramAPI as iAPI
+from insta.InstaAnalyzer import InstaAnalyzer
 
 class InstaModule:
 
@@ -52,7 +52,7 @@ class InstaModule:
         self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
 
     def _saveMedia(self, media_type, media_id, url):
-        name = '../media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
+        name = 'media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
         #Проверка наличия файла с таким именем
         if os.path.exists(name):
             return
@@ -214,6 +214,3 @@ class InstaModule:
         for item in highlights:
             ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
         return ret
-
-insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
-insta.getData("arina_weasley")

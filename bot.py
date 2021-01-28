@@ -1,4 +1,8 @@
+import time
+from threading import Thread
 import telebot
+from insta.insta import InstaModule
+from vk.vk import VkModule
 
 bot = telebot.TeleBot('TOKEN')
 
@@ -26,7 +30,8 @@ def add_insta_username(message):
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['insta']:
         user_dict['insta'].append(message.text)
-        send_menu(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых. " + "Какие еще действия вы бы хотели совершить?")
+        bot.send_message(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых")
+        send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
     else:
         msg = bot.send_message(message.from_user.id, text="Пользователь уже имеется в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, add_insta_username)
@@ -42,7 +47,8 @@ def del_insta_username(message):
         bot.register_next_step_handler(msg, del_insta_username)
     else:
         user_dict['insta'].remove(message.text)
-        send_menu(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых. " + "Какие еще действия вы бы хотели совершить?")
+        bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых")
+        send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
         #TODO: Удалить медиа из бд
 
 def add_vk_id(message):
@@ -55,7 +61,8 @@ def add_vk_id(message):
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
     if message.text not in user_dict['vk']:
         user_dict['vk'].append(message.text)
-        send_menu(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых. " + "Какие еще действия вы бы хотели совершить?")
+        bot.send_message(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых")
+        send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
     else:
         msg = bot.send_message(message.from_user.id, text="Пользователь уже имеется в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, add_vk_id)
@@ -71,7 +78,8 @@ def del_vk_id(message):
         bot.register_next_step_handler(msg, del_vk_id)
     else:
         user_dict['vk'].remove(message.text)
-        send_menu(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых. " + "Какие еще действия вы бы хотели совершить?")
+        bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых. ")
+        send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
         #TODO: Удалить медиа из бд
 
 def ask_platform_worker(call):
@@ -124,7 +132,8 @@ def callback_worker(call):
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
         for item in user_dict['insta']:
             print_str += "\n" + item
-        send_menu(call.message.chat.id, print_str + "\nКакие еще действия вы бы хотели совершить?")
+        bot.send_message(call.message.chat.id, print_str)
+        send_menu(call.message.chat.id, "Какие еще действия вы бы хотели совершить?")
 
     if call.data == 'del_user_insta':
         print_str = 'Введите имя пользователя, которого вы хотите удалить из следующего списка или /cancel для отмены:'
@@ -139,7 +148,8 @@ def callback_worker(call):
         user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
         for item in user_dict['vk']:
             print_str += "\n" + item
-        send_menu(call.message.chat.id, print_str + "\nКакие еще действия вы бы хотели совершить?")
+        bot.send_message(call.message.chat.id, print_str)
+        send_menu(call.message.chat.id, "Какие еще действия вы бы хотели совершить?")
         #TODO: Вывод имен?
 
     if call.data == 'del_user_vk':
@@ -164,8 +174,16 @@ def text_messages_handler(message):
 
     send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
 
-bot.polling(none_stop=True, interval=0)
+insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+#insta.getData("arina_weasley")
+vk = VkModule('8801923291704', 'CM8Ipp69w')
+#vk.getData('78961353')
+
+polling_thread = Thread(target=bot.polling, args=(True, 0,))
+polling_thread.start()
 
 #Тестирование отправки сообщений по инициативе бота
 #chatId = 374113718
-#bot.send_message(chatId, "Тест инициативной передачи")
+#while 1:
+#    time.sleep(3)
+#    bot.send_message(chatId, "Тест инициативной передачи")

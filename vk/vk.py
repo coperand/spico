@@ -1,7 +1,7 @@
 import urllib.request
 import os.path
 import vk_api
-from VkAnalyzer import VkAnalyzer
+from vk.VkAnalyzer import VkAnalyzer
 
 class VkModule:
 
@@ -25,25 +25,25 @@ class VkModule:
         else:
             self.analyzer.handleData(username, targetId, 'private', {'bool': False})
 
-        #self.analyzer.handleData(username, targetId, 'profile', ret)
+        self.analyzer.handleData(username, targetId, 'profile', ret)
 
         #Получаем подписки и группы
-        #self.analyzer.handleData(username, targetId, 'subscriptions', self._receiveAllSubscriptions(targetId))
+        self.analyzer.handleData(username, targetId, 'subscriptions', self._receiveAllSubscriptions(targetId))
 
         #Получаем друзей
-        #self.analyzer.handleData(username, targetId, 'friends', self._receiveFriends(targetId))
+        self.analyzer.handleData(username, targetId, 'friends', self._receiveFriends(targetId))
 
         #Получаем видео
-        #self.analyzer.handleData(username, targetId, 'videos', self._receiveVideos(targetId))
+        self.analyzer.handleData(username, targetId, 'videos', self._receiveVideos(targetId))
 
         #Получаем фотографии(с комментариями)
-        #self.analyzer.handleData(username, targetId, 'photos', self._receiveAllPhotos(targetId))
+        self.analyzer.handleData(username, targetId, 'photos', self._receiveAllPhotos(targetId))
 
         #Получаем записи на стене (с комментариями)
         self.analyzer.handleData(username, targetId, 'posts', self._receivePosts(targetId))
 
     def _saveMedia(self, media_type, media_id, url):
-        name = '../media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
+        name = 'media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
         #Проверка наличия файла с таким именем
         if os.path.exists(name):
             return
@@ -243,6 +243,3 @@ class VkModule:
                 ret_item['comments'] = []
             ret.append(ret_item)
         return ret
-
-vk = VkModule('8801923291704', 'CM8Ipp69w')
-vk.getData('78961353')
