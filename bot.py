@@ -1,5 +1,7 @@
 import sys
 import time
+import os
+import urllib.request
 from threading import Thread
 import telebot
 from insta.insta import InstaModule
@@ -7,15 +9,41 @@ from vk.vk import VkModule
 
 bot = telebot.TeleBot('TOKEN')
 
+white_list = ['coperand']
+user_list = {}
+
+def saveMedia(file_name, url):
+        img = urllib.request.urlopen(item).read()
+        out = open(file_name, "wb")
+        out.write(img)
+        out.close()
+
+def send_data_callback(user, text='', images=[], videos=[]):
+    bot.send_message(user_list[user]['id'], text)
+    for item in images:
+        file_name = '/tmp/spico-temporary-file.jpg'
+        saveMedia(file_name, item)
+
+        img = open(file_name, "rb")
+        bot.send_photo(user_list[user]['id'], img)
+        img.close()
+        os.remove(file_name)
+    for item in videos:
+        file_name = '/tmp/spico-temporary-file.mp4'
+        saveMedia(file_name, item)
+
+        vid = open(file_name, "rb")
+        bot.send_video(user_list[user]['id'], vid)
+        vid.close()
+        os.remove(file_name)
+
+
 try:
-    insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+    insta = InstaModule('ingabeiko94', 'mKzkgUbYBs', send_data_callback)
     vk = VkModule('8801923291704', 'CM8Ipp69w')
 except Exception as e:
     print("Exception: " + str(e))
     sys.exit()
-
-white_list = ['coperand']
-user_list = {}
 
 def send_menu(user_id, message):
     keyboard = telebot.types.InlineKeyboardMarkup()
@@ -39,7 +67,7 @@ def add_insta_username(message):
         bot.register_next_step_handler(msg, add_insta_username)
         return
 
-    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
+    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
     if message.text not in user_dict['insta']:
         user_dict['insta'].append(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых")
@@ -53,7 +81,7 @@ def del_insta_username(message):
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
 
-    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
+    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
     if message.text not in user_dict['insta']:
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, del_insta_username)
@@ -75,7 +103,7 @@ def add_vk_id(message):
         bot.register_next_step_handler(msg, add_vk_id)
         return
 
-    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
+    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
     if message.text not in user_dict['vk']:
         user_dict['vk'].append(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + username + ' (' + message.text + ')' + " добавлен в список отслеживаемых")
@@ -89,7 +117,7 @@ def del_vk_id(message):
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
         return
 
-    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': []})
+    user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
     if message.text not in user_dict['vk']:
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, del_vk_id)
@@ -146,7 +174,7 @@ def callback_worker(call):
 
     if call.data == 'print_users_insta':
         print_str = 'Список отслеживаемых пользователей:'
-        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
+        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': [], 'id': call.from_user.id})
         for item in user_dict['insta']:
             print_str += "\n" + item
         bot.send_message(call.message.chat.id, print_str)
@@ -154,7 +182,7 @@ def callback_worker(call):
 
     if call.data == 'del_user_insta':
         print_str = 'Введите имя пользователя, которого вы хотите удалить из следующего списка или /cancel для отмены:'
-        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
+        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': [], 'id': call.from_user.id})
         for item in user_dict['insta']:
             print_str += "\n" + item
         msg = bot.send_message(call.message.chat.id, print_str)
@@ -162,7 +190,7 @@ def callback_worker(call):
 
     if call.data == 'print_users_vk':
         print_str = 'Список отслеживаемых пользователей:'
-        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
+        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': [], 'id': call.from_user.id})
         for item in user_dict['vk']:
             username = vk.checkId(item)
             print_str += "\n" + username + " (" + item + ")"
@@ -171,7 +199,7 @@ def callback_worker(call):
 
     if call.data == 'del_user_vk':
         print_str = 'Введите идентификатор пользователя (число в скобках), которого вы хотите удалить из следующего списка (или /cancel для отмены):'
-        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': []})
+        user_dict = user_list.setdefault(call.from_user.username, {'insta': [], 'vk': [], 'id': call.from_user.id})
         for item in user_dict['vk']:
             username = vk.checkId(item)
             print_str += "\n" + username + " (" + item + ")"
@@ -197,7 +225,6 @@ def text_messages_handler(message):
 polling_thread = Thread(target=bot.polling, args=(True, 0,))
 polling_thread.start()
 
-#chatId = 374113718
 while 1:
     for user_name in user_list:
         for item in user_list[user_name]['insta']:

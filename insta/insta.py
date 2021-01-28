@@ -3,13 +3,13 @@ from insta.InstaAnalyzer import InstaAnalyzer
 
 class InstaModule:
 
-    def __init__(self, login, passwd):
+    def __init__(self, login, passwd, callback):
         '''Подготовка клиента и класса для анализа данных'''
         self.client = iAPI.InstagramAPI(login, passwd)
         self.client.login()
         if self.client.isLoggedIn is False:
             raise Exception("Instagram logging failure")
-        self.analyzer = InstaAnalyzer()
+        self.analyzer = InstaAnalyzer(callback)
 
     def checkName(self, nickname):
         if self._getUserId(nickname) is False:

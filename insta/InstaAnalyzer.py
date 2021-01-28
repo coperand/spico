@@ -1,10 +1,10 @@
 import json
-import os
 import redis
 
 class InstaAnalyzer:
 
-    def __init__(self):
+    def __init__(self, callback):
+        self.callback = callback
         self.red = redis.Redis()
 
     def removeUser(self, user):
@@ -42,34 +42,23 @@ class InstaAnalyzer:
 
         self.red.set(bd_key, json.dumps(data))
 
-    def _saveMedia(self, media_type, media_id, url):
-        name = 'media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
-        #Проверка наличия файла с таким именем
-        if os.path.exists(name):
-            return
-
-        img = urllib.request.urlopen(url).read()
-        out = open(name, "wb")
-        out.write(img)
-        out.close()
-
     def _handlePrivate(self, user, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
         if data_new['bool'] is True:
-            print("User @" + user + " closed account")
+            self.callback(user, "Пользователь @" + user + " закрыл аккаунт")
         else:
-            print("User @" + user + " opened account")
+            self.callback(user, "Пользователь @" + user + " открыл аккаунт")
 
     def _handleProfile(self, user, data_new, data_old):
         if data_new == data_old:
             return
         if data_new['name'] != data_old['name']:
-            print("User @" + user + " changed name from: " + data_old['name'] + " to: " + data_new['name'])
+            self.callback(user, "Пользователь @" + user + " сменил имя с " + data_old['name'] + " на " + data_new['name'])
         if data_new['bio'] != data_old['bio']:
-            print("User @" + user + " changed biography from: " + data_old['bio'] + " to: " + data_new['bio'])
+            self.callback(user, "Пользователь @" + user + " сменил биографию с " + data_old['bio'] + " на " + data_new['bio'])
         if data_new['avatar_id'] != data_old['avatar_id']:
-            print("User @" + user + " changed avatar from: " + data_old['avatar'] +  " to: " + data_new['avatar'])
+            self.callback(user, "Пользователь @" + user + " сменил аватар", images=[data_old['avatar'], data_new['avatar']])
 
     def _listsDiff(self, list1, list2):
         diff1, diff2 = [], []
@@ -85,15 +74,15 @@ class InstaAnalyzer:
     def _handleFollowings(self, user, data_new, data_old):
         added, deleted = self._listsDiff(data_new, data_old)
         if len(added) > 0:
-            send_str = 'User @' + user + ' added new followings: '
+            send_str = 'Пользователь @' + user + ' подписался на следующие страницы: '
             for item in added:
                 send_str += '@' + item + ' '
-            print(send_str)
+            self.callback(user, send_str)
         if len(deleted) > 0:
-            send_str = 'User @' + user + ' removed followings: '
+            send_str = 'Пользователь @' + user + ' отписался от следующих страниц: '
             for item in deleted:
                 send_str += '@' + item + ' '
-            print(send_str)
+            self.callback(user, send_str)
 
     def _commentsDiff(self, post1, post2):
         diff1, diff2 = [], []
@@ -138,32 +127,61 @@ class InstaAnalyzer:
         added, deleted, added_comments, deleted_comments = self._postsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
+                send_str = ''
+                send_images = []
+                send_videos = []
                 if item['type'] == 8:
-                    print('User @' + user + ' added post carousel:')
+                    send_str = 'Пользователь @' + user + ' выложил новый пост'
                     for car_data in item['carousel']:
-                        print('Carousel item:' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                        if car_data['type'] == 1:
+                            send_images.append(car_data['photo'])
+                        elif car_data['type'] == 2:
+                            send_videos.append(car_data['video'])
                 else:
-                    print('User @' + user + ' added new post: ' + (item['photo'] if item['type'] == 1 else item['video']))
-                for comment in item['comments']:
-                    print('With comment from @' + comment['user'] + ': ' + comment['text'])
+                    if item['type'] == 1:
+                        send_images.append(item['photo'])
+                    elif item['type'] == 2:
+                        send_videos.append(item['video'])
+
+                comments_str = ''
+                if len(item['comments']) > 0:
+                    comments_str = 'Со следующими комментариями:'
+                    for comment in item['comments']:
+                        comments_str += '\n@' + comment['user'] + ': ' + comment['text']
+                self.callback(user, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
         if len(deleted) > 0:
             for item in deleted:
+                send_str = ''
+                send_images = []
+                send_videos = []
                 if item['type'] == 8:
-                    print('User @' + user + ' removed post carousel:')
+                    send_str = 'Пользователь @' + user + ' удалил пост'
                     for car_data in item['carousel']:
-                        print('Carousel item:' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                        if car_data['type'] == 1:
+                            send_images.append(car_data['photo'])
+                        elif car_data['type'] == 2:
+                            send_videos.append(car_data['video'])
                 else:
-                    print('User @' + user + ' removed post: ' + (item['photo'] if item['type'] == 1 else item['video']))
-                for comment in item['comments']:
-                    print('With comment from @' + comment['user'] + ': ' + comment['text'])
+                    if item['type'] == 1:
+                        send_images.append(item['photo'])
+                    elif item['type'] == 2:
+                        send_videos.append(item['video'])
+
+                comments_str = ''
+                if len(item['comments']) > 0:
+                    comments_str = 'Со следующими комментариями:'
+                    for comment in item['comments']:
+                        comments_str += '\n@' + comment['user'] + ': ' + comment['text']
+                self.callback(user, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
+
         if len(added_comments) > 0:
             for item in added_comments:
                 for comment in item['changes']:
-                    print('User @' + user + ' has a new comment from @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
+                    self.callback(user, 'У пользователя @' + user + ' новый комментарий от @' + comment['user'] + ': ' + comment['text'])
         if len(deleted_comments) > 0:
             for item in deleted_comments:
                 for comment in item['changes']:
-                    print('User @' + user + ' has lost the comment from @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
+                    self.callback(user, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
 
     def _handleStories(self, user, data_new, data_old):
         if data_new is None and data_old is not None:
@@ -172,7 +190,10 @@ class InstaAnalyzer:
             return
         elif data_new is not None and data_old is None:
             for item in data_new:
-                print('User @' + user + ' posted new story: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                if item['type'] == 1:
+                    self.callback(user, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
+                elif item['type'] == 2:
+                    self.callback(user, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
         else:
             for item in data_new:
                 found = False
@@ -181,7 +202,10 @@ class InstaAnalyzer:
                         found = True
                         break
                 if found is False:
-                    print('User @' + user + ' posted new story: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                    if item['type'] == 1:
+                        self.callback(user, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
+                    elif item['type'] == 2:
+                        self.callback(user, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
 
             for item in data_old:
                 found = False
@@ -216,20 +240,41 @@ class InstaAnalyzer:
         added, deleted = self._tagsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
+                send_str = ''
+                send_images = []
+                send_videos = []
                 if item['type'] == 8:
-                    print('User @' + user + ' has a new tag carousel:')
+                    send_str = 'Пользователя @' + user + ' отметили в посте'
                     for car_data in item['carousel']:
-                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                        if car_data['type'] == 1:
+                            send_images.append(car_data['photo'])
+                        elif car_data['type'] == 2:
+                            send_videos.append(car_data['video'])
                 else:
-                    print('User @' + user + ' has a new tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                    if item['type'] == 1:
+                        send_images.append(item['photo'])
+                    elif item['type'] == 2:
+                        send_videos.append(item['video'])
+                self.callback(user, send_str, images=send_images, videos=send_videos)
+
         if len(deleted) > 0:
             for item in deleted:
+                send_str = ''
+                send_images = []
+                send_videos = []
                 if item['type'] == 8:
-                    print('User @' + user + ' has lost tag carousel:')
+                    send_str = 'Пользователя @' + user + ' убрали из отмеченных в посте'
                     for car_data in item['carousel']:
-                        print('Carousel item: ' + (car_data['photo'] if car_data['type'] == 1 else car_data['video']))
+                        if car_data['type'] == 1:
+                            send_images.append(car_data['photo'])
+                        elif car_data['type'] == 2:
+                            send_videos.append(car_data['video'])
                 else:
-                    print('User @' + user + ' has lost tag: ' + (item['photo'] if item['type'] == 1 else item['video']))
+                    if item['type'] == 1:
+                        send_images.append(item['photo'])
+                    elif item['type'] == 2:
+                        send_videos.append(item['video'])
+                self.callback(user, send_str, images=send_images, videos=send_videos)
 
     def _handleReelMedia(self, user, highlight, stories_new, stories_old):
         for item in stories_new:
@@ -239,7 +284,10 @@ class InstaAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User @' + user + ' added new story to highlight: ' + highlight + " - " + (item['photo'] if item['type'] == 1 else item['video']))
+                if item['type'] == 1:
+                    self.callback(user, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, images=[item['photo']])
+                elif item['type'] == 2:
+                    self.callback(user, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, videos=[item['video']])
         for item in stories_old:
             found = False
             for item2 in stories_new:
@@ -247,7 +295,10 @@ class InstaAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User @' + user + ' removed a story from highlight: ' + highlight + " - " + (item['photo'] if item['type'] == 1 else item['video']))
+                if item['type'] == 1:
+                    self.callback(user, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, images=[item['photo']])
+                elif item['type'] == 2:
+                    self.callback(user, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, videos=[item['video']])
 
     def _handleHighlights(self, user, data_new, data_old):
         for highlight in data_new:
@@ -259,10 +310,16 @@ class InstaAnalyzer:
                     self._handleReelMedia(user, highlight['title'] ,highlight['stories'], highlight_old['stories'])
                     break
             if found is False:
-                print('User @' + user + ' added new highlight: ' + highlight['title'])
                 #Перебор и отправка всех новых историй
+                send_str = 'Пользователь @' + user + ' добавил новое актуальное: ' + highlight['title']
+                send_images = []
+                send_videos = []
                 for story in highlight['stories']:
-                    print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
+                    if story['type'] == 1:
+                        send_images.append(story['photo'])
+                    elif story['type'] == 2:
+                        send_videos.append(story['video'])
+                self.callback(user, send_str, images=send_images, videos=send_videos)
 
         for highlight in data_old:
             found = False
@@ -271,7 +328,13 @@ class InstaAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User @' + user + ' added removed highlight: ' + highlight['title'])
                 #Перебор и отправка всех старых историй
+                send_str = 'Пользователь @' + user + ' удалил актуальное: ' + highlight['title']
+                send_images = []
+                send_videos = []
                 for story in highlight['stories']:
-                    print('Story: ' + (story['photo'] if story['type'] == 1 else story['video']))
+                    if story['type'] == 1:
+                        send_images.append(story['photo'])
+                    elif story['type'] == 2:
+                        send_videos.append(story['video'])
+                self.callback(user, send_str, images=send_images, videos=send_videos)
