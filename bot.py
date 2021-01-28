@@ -1,3 +1,4 @@
+import sys
 import time
 from threading import Thread
 import telebot
@@ -6,8 +7,12 @@ from vk.vk import VkModule
 
 bot = telebot.TeleBot('TOKEN')
 
-insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
-vk = VkModule('8801923291704', 'CM8Ipp69w')
+try:
+    insta = InstaModule('ingabeiko94', 'mKzkgUbYBs')
+    vk = VkModule('8801923291704', 'CM8Ipp69w')
+except Exception as e:
+    print("Exception: " + str(e))
+    sys.exit()
 
 white_list = ['coperand']
 user_list = {}
@@ -56,7 +61,7 @@ def del_insta_username(message):
         user_dict['insta'].remove(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
-        #TODO: Удалить медиа из бд
+        insta.removeData(message.text)
 
 def add_vk_id(message):
     if message.text == '/cancel':
@@ -92,7 +97,7 @@ def del_vk_id(message):
         user_dict['vk'].remove(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых. ")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
-        #TODO: Удалить медиа из бд
+        vk.removeData(message.text)
 
 def ask_platform_worker(call):
     if call.data == 'add_user':
@@ -195,9 +200,6 @@ polling_thread.start()
 #chatId = 374113718
 while 1:
     for user_name in user_list:
-        print(user_list[user_name])
-        print()
-        print(type(user_list[user_name]))
         for item in user_list[user_name]['insta']:
             #insta.getData(item)
             pass

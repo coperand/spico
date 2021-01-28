@@ -10,8 +10,6 @@ class VkModule:
         vk_session = vk_api.VkApi(phone, passwd)
         vk_session.auth()
         self.vk = vk_session.get_api()
-        #TODO: Обработка исключения в вызывающем коде
-
         self.analyzer = VkAnalyzer()
 
     def checkId(self, targetId):
@@ -20,6 +18,9 @@ class VkModule:
             return False
         else:
             return ret['first_name'] + " " + ret['last_name']
+
+    def removeData(self, userId):
+        self.analyzer.removeUser(userId)
 
     def getData(self, targetId):
         #Получаем информацию о пользователе и проверяем аккаунт на закрытость
@@ -47,17 +48,6 @@ class VkModule:
 
         #Получаем записи на стене (с комментариями)
         self.analyzer.handleData(username, targetId, 'posts', self._receivePosts(targetId))
-
-    def _saveMedia(self, media_type, media_id, url):
-        name = 'media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
-        #Проверка наличия файла с таким именем
-        if os.path.exists(name):
-            return
-
-        img = urllib.request.urlopen(url).read()
-        out = open(name, "wb")
-        out.write(img)
-        out.close()
 
     def _receiveUserInfo(self, targetId):
         response = {}
@@ -196,7 +186,6 @@ class VkModule:
             ret_item = {}
             ret_item['id'] = item['id']
             ret_item['photo'] = item['sizes'][-1]['url']
-            self._saveMedia(1, ret_item['id'], ret_item['photo'])
             if item['comments']['count'] > 0:
                 ret_item['comments'] = self._receivePhotoComments(targetId, item['id'])
             else:
@@ -246,7 +235,6 @@ class VkModule:
             for attachment in item.setdefault('attachments', []):
                 if attachment['type'] == 'photo':
                     ret_item['attachments'].append({'id': attachment['photo']['id'], 'photo': attachment['photo']['sizes'][-1]['url']})
-                    self._saveMedia(1, attachment['photo']['id'], attachment['photo']['sizes'][-1]['url'])
             if item['comments']['count'] > 0:
                 ret_item['comments'] = self._receivePostComments(targetId, item['id'])
             else:

@@ -1,5 +1,3 @@
-import urllib.request
-import os.path
 import insta.InstagramAPI as iAPI
 from insta.InstaAnalyzer import InstaAnalyzer
 
@@ -11,8 +9,6 @@ class InstaModule:
         self.client.login()
         if self.client.isLoggedIn is False:
             raise Exception("Instagram logging failure")
-        #TODO: Обработка исключения в вызывающем коде
-
         self.analyzer = InstaAnalyzer()
 
     def checkName(self, nickname):
@@ -21,12 +17,13 @@ class InstaModule:
         else:
             return True
 
+    def removeData(self, nickname):
+        self.analyzer.removeUser(nickname)
+
     def getData(self, nickname):
 
         #Получение идентификатора пользователя по имени
         targetId = self._getUserId(nickname)
-
-        #TODO: Проверка корректности имени на стадии его добавления
 
         #Получение информации об аккаунте и возврат в случае, если он закрытый
         ret = self._receiveProfileInfo(targetId)
@@ -57,17 +54,6 @@ class InstaModule:
         #Получение всех историй из панели актуального
         self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
 
-    def _saveMedia(self, media_type, media_id, url):
-        name = 'media/insta/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
-        #Проверка наличия файла с таким именем
-        if os.path.exists(name):
-            return
-
-        img = urllib.request.urlopen(url).read()
-        out = open(name, "wb")
-        out.write(img)
-        out.close()
-
     def _getUserId(self, username):
         '''Получаем id пользователя по имени'''
         result = self.client.getTotalSearchUsername(username)
@@ -88,7 +74,6 @@ class InstaModule:
         ret['bio'] = profile['biography']
         ret['avatar'] = profile['hd_profile_pic_url_info']['url']
         ret['avatar_id'] = profile['profile_pic_id']
-        self._saveMedia(1, ret['avatar_id'], ret['avatar'])
         return ret
 
     def _receiveFollowings(self, targetId):
@@ -121,12 +106,10 @@ class InstaModule:
                 ret_item['type'] = 1
                 ret_item['id'] = item['id']
                 ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
-                self._saveMedia(1, ret_item['id'], ret_item['photo'])
             elif item['media_type'] == 2:
                 ret_item['type'] = 2
                 ret_item['id'] = item['id']
                 ret_item['video'] = item['video_versions'][0]['url']
-                self._saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
                 ret_item['id'] = item['id']
@@ -137,10 +120,8 @@ class InstaModule:
 
                     if media['media_type'] == 1:
                         ret_item['carousel'].append({'type': 1, 'id': media['id'], 'photo': media['image_versions2']['candidates'][0]['url']})
-                        self._saveMedia(1, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['photo'])
                     elif media['media_type'] == 2:
                         ret_item['carousel'].append({'type': 2, 'id': media['id'], 'video': media['video_versions'][0]['url']})
-                        self._saveMedia(2, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['video'])
 
             if item['comment_count'] > 0:
                 ret_item['comments'] = self._receiveComments(item['id'])
@@ -161,10 +142,8 @@ class InstaModule:
         for item in stories['items']:
             if item['media_type'] == 1:
                 ret.append({'type': 1, 'id': item['id'], 'photo': item['image_versions2']['candidates'][0]['url']})
-                self._saveMedia(1, ret[-1]['id'], ret[-1]['photo'])
             elif item['media_type'] == 2:
                 ret.append({'type': 2, 'id': item['id'], 'video': item['video_versions'][0]['url']})
-                self._saveMedia(2, ret[-1]['id'], ret[-1]['video'])
         return ret
 
     def _receiveUserTags(self, targetId):
@@ -179,12 +158,10 @@ class InstaModule:
                 ret_item['type'] = 1
                 ret_item['id'] = item['id']
                 ret_item['photo'] = item['image_versions2']['candidates'][0]['url']
-                self._saveMedia(1, ret_item['id'], ret_item['photo'])
             elif item['media_type'] == 2:
                 ret_item['type'] = 2
                 ret_item['id'] = item['id']
                 ret_item['video'] = item['video_versions'][0]['url']
-                self._saveMedia(2, ret_item['id'], ret_item['video'])
             elif item['media_type'] == 8:
                 ret_item['type'] = 8
                 ret_item['id'] = item['id']
@@ -195,10 +172,8 @@ class InstaModule:
 
                     if media['media_type'] == 1:
                         ret_item['carousel'].append({'type': 1, 'id': media['id'], 'photo': media['image_versions2']['candidates'][0]['url']})
-                        self._saveMedia(1, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['photo'])
                     elif media['media_type'] == 2:
                         ret_item['carousel'].append({'type': 2, 'id': media['id'], 'video': media['video_versions'][0]['url']})
-                        self._saveMedia(2, ret_item['carousel'][-1]['id'], ret_item['carousel'][-1]['video'])
             ret.append(ret_item)
         return ret
 
@@ -210,10 +185,8 @@ class InstaModule:
         for item in medias:
             if item['media_type'] == 1:
                 ret.append({'type': 1, 'id': item['id'], 'photo': item['image_versions2']['candidates'][0]['url']})
-                self._saveMedia(1, ret[-1]['id'], ret[-1]['photo'])
             elif item['media_type'] == 2:
                 ret.append({'type': 2, 'id': item['id'], 'video': item['video_versions'][0]['url']})
-                self._saveMedia(2, ret[-1]['id'], ret[-1]['video'])
         return ret
 
     def _receiveHighlights(self, targetId):

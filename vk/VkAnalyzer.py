@@ -7,6 +7,12 @@ class VkAnalyzer:
     def __init__(self):
         self.red = redis.Redis()
 
+    def removeUser(self, user):
+        keys = ['private', 'profile', 'subscriptions', 'friends', 'videos', 'photos', 'posts']
+        for key in keys:
+            bd_key = 'vk-' + user + '-' + key
+            self.red.delete(bd_key)
+
     def handleData(self, user, uid, key, data):
 
         bd_key = 'vk-' + uid + '-' + key
@@ -35,12 +41,16 @@ class VkAnalyzer:
 
         self.red.set(bd_key, json.dumps(data))
 
-    def _removeMedia(self, media_type, media_id):
-        name = '../media/vk/' + media_id + ('.jpg' if media_type == 1 else '.mp4')
-        try:
-            os.remove(name)
-        except:
-            pass
+    def _saveMedia(self, media_type, media_id, url):
+        name = 'media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
+        #Проверка наличия файла с таким именем
+        if os.path.exists(name):
+            return
+
+        img = urllib.request.urlopen(url).read()
+        out = open(name, "wb")
+        out.write(img)
+        out.close()
 
     def _handlePrivate(self, user, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
@@ -159,7 +169,6 @@ class VkAnalyzer:
                     break
             if found is False:
                 print('User ' + user + ' removed photo from album: ' + album + " - " + item['photo'])
-                self._removeMedia(1, str(item['id']))
                 for comment in item['comments']:
                     print('With comment: ' + comment)
 
@@ -193,7 +202,6 @@ class VkAnalyzer:
                     print('Photo - ' + photo['photo'])
                     for comment in photo['comments']:
                         print('With comment: ' + comment)
-                    self._removeMedia(1, str(photo['id']))
 
     def _handlePostComments(self, user, post, comments_new, comments_old):
         for item in comments_new:
@@ -238,6 +246,5 @@ class VkAnalyzer:
                 print('User ' + user + ' removed post: ' + item['text'])
                 for photo in item['attachments']:
                     print('With photo - ' + photo['photo'])
-                    self._removeMedia(1, str(photo['id']))
                 for comment in item['comments']:
                     print('With comment: ' + comment)
