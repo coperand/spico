@@ -13,52 +13,52 @@ class InstaAnalyzer:
             bd_key = 'insta-' + user + '-' + key
             self.red.delete(bd_key)
 
-    def handleData(self, user, key, data):
+    def handleData(self, user, chatId, key, data):
         bd_key = 'insta-' + user + '-' + key
         redis_bd_item = self.red.get(bd_key)
 
         if redis_bd_item is None:
             self.red.set(bd_key, json.dumps(data))
             if key == 'stories' and data is not None:
-                self._handleStories(user, data, None)
+                self._handleStories(user, chatId, data, None)
             return
 
         bd_data = json.loads(redis_bd_item)
 
         if key == 'private':
-            self._handlePrivate(user, data, bd_data)
+            self._handlePrivate(user, chatId, data, bd_data)
         elif key == 'profile':
-            self._handleProfile(user, data, bd_data)
+            self._handleProfile(user, chatId, data, bd_data)
         elif key == 'followings':
-            self._handleFollowings(user, data, bd_data)
+            self._handleFollowings(user, chatId, data, bd_data)
         elif key == 'posts':
-            self._handlePosts(user, data, bd_data)
+            self._handlePosts(user, chatId, data, bd_data)
         elif key == 'stories':
-            self._handleStories(user, data, bd_data)
+            self._handleStories(user, chatId, data, bd_data)
         elif key == 'tags':
-            self._handleTags(user, data, bd_data)
+            self._handleTags(user, chatId, data, bd_data)
         elif key == 'highlights':
-            self._handleHighlights(user, data, bd_data)
+            self._handleHighlights(user, chatId, data, bd_data)
 
         self.red.set(bd_key, json.dumps(data))
 
-    def _handlePrivate(self, user, data_new, data_old):
+    def _handlePrivate(self, user, chatId, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
         if data_new['bool'] is True:
-            self.callback(user, "Пользователь @" + user + " закрыл аккаунт")
+            self.callback(chatId, "Пользователь @" + user + " закрыл аккаунт")
         else:
-            self.callback(user, "Пользователь @" + user + " открыл аккаунт")
+            self.callback(chatId, "Пользователь @" + user + " открыл аккаунт")
 
-    def _handleProfile(self, user, data_new, data_old):
+    def _handleProfile(self, user, chatId, data_new, data_old):
         if data_new == data_old:
             return
         if data_new['name'] != data_old['name']:
-            self.callback(user, "Пользователь @" + user + " сменил имя с " + data_old['name'] + " на " + data_new['name'])
+            self.callback(chatId, "Пользователь @" + user + " сменил имя с " + data_old['name'] + " на " + data_new['name'])
         if data_new['bio'] != data_old['bio']:
-            self.callback(user, "Пользователь @" + user + " сменил биографию с " + data_old['bio'] + " на " + data_new['bio'])
+            self.callback(chatId, "Пользователь @" + user + " сменил биографию с " + data_old['bio'] + " на " + data_new['bio'])
         if data_new['avatar_id'] != data_old['avatar_id']:
-            self.callback(user, "Пользователь @" + user + " сменил аватар", images=[data_old['avatar'], data_new['avatar']])
+            self.callback(chatId, "Пользователь @" + user + " сменил аватар", images=[data_old['avatar'], data_new['avatar']])
 
     def _listsDiff(self, list1, list2):
         diff1, diff2 = [], []
@@ -71,18 +71,18 @@ class InstaAnalyzer:
 
         return diff1, diff2
 
-    def _handleFollowings(self, user, data_new, data_old):
+    def _handleFollowings(self, user, chatId, data_new, data_old):
         added, deleted = self._listsDiff(data_new, data_old)
         if len(added) > 0:
             send_str = 'Пользователь @' + user + ' подписался на следующие страницы: '
             for item in added:
                 send_str += '@' + item + ' '
-            self.callback(user, send_str)
+            self.callback(chatId, send_str)
         if len(deleted) > 0:
             send_str = 'Пользователь @' + user + ' отписался от следующих страниц: '
             for item in deleted:
                 send_str += '@' + item + ' '
-            self.callback(user, send_str)
+            self.callback(chatId, send_str)
 
     def _commentsDiff(self, post1, post2):
         diff1, diff2 = [], []
@@ -123,7 +123,7 @@ class InstaAnalyzer:
 
         return diff1, diff2, comments_diff1, comments_diff2
 
-    def _handlePosts(self, user, data_new, data_old):
+    def _handlePosts(self, user, chatId, data_new, data_old):
         added, deleted, added_comments, deleted_comments = self._postsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
@@ -148,7 +148,7 @@ class InstaAnalyzer:
                     comments_str = 'Со следующими комментариями:'
                     for comment in item['comments']:
                         comments_str += '\n@' + comment['user'] + ': ' + comment['text']
-                self.callback(user, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
+                self.callback(chatId, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
         if len(deleted) > 0:
             for item in deleted:
                 send_str = ''
@@ -172,18 +172,18 @@ class InstaAnalyzer:
                     comments_str = 'Со следующими комментариями:'
                     for comment in item['comments']:
                         comments_str += '\n@' + comment['user'] + ': ' + comment['text']
-                self.callback(user, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
+                self.callback(chatId, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
 
         if len(added_comments) > 0:
             for item in added_comments:
                 for comment in item['changes']:
-                    self.callback(user, 'У пользователя @' + user + ' новый комментарий от @' + comment['user'] + ': ' + comment['text'])
+                    self.callback(chatId, 'У пользователя @' + user + ' новый комментарий от @' + comment['user'] + ': ' + comment['text'])
         if len(deleted_comments) > 0:
             for item in deleted_comments:
                 for comment in item['changes']:
-                    self.callback(user, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
+                    self.callback(chatId, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
 
-    def _handleStories(self, user, data_new, data_old):
+    def _handleStories(self, user, chatId, data_new, data_old):
         if data_new is None and data_old is not None:
             return
         elif data_new is None:
@@ -191,9 +191,9 @@ class InstaAnalyzer:
         elif data_new is not None and data_old is None:
             for item in data_new:
                 if item['type'] == 1:
-                    self.callback(user, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
+                    self.callback(chatId, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
                 elif item['type'] == 2:
-                    self.callback(user, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
+                    self.callback(chatId, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
         else:
             for item in data_new:
                 found = False
@@ -203,9 +203,9 @@ class InstaAnalyzer:
                         break
                 if found is False:
                     if item['type'] == 1:
-                        self.callback(user, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
+                        self.callback(chatId, 'Пользователь @' + user + ' выложил новую историю', images=[item['photo']])
                     elif item['type'] == 2:
-                        self.callback(user, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
+                        self.callback(chatId, 'Пользователь @' + user + ' выложил новую историю', videos=[item['video']])
 
             for item in data_old:
                 found = False
@@ -236,7 +236,7 @@ class InstaAnalyzer:
 
         return diff1, diff2
 
-    def _handleTags(self, user, data_new, data_old):
+    def _handleTags(self, user, chatId, data_new, data_old):
         added, deleted = self._tagsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
@@ -255,7 +255,7 @@ class InstaAnalyzer:
                         send_images.append(item['photo'])
                     elif item['type'] == 2:
                         send_videos.append(item['video'])
-                self.callback(user, send_str, images=send_images, videos=send_videos)
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)
 
         if len(deleted) > 0:
             for item in deleted:
@@ -274,9 +274,9 @@ class InstaAnalyzer:
                         send_images.append(item['photo'])
                     elif item['type'] == 2:
                         send_videos.append(item['video'])
-                self.callback(user, send_str, images=send_images, videos=send_videos)
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)
 
-    def _handleReelMedia(self, user, highlight, stories_new, stories_old):
+    def _handleReelMedia(self, user, chatId, highlight, stories_new, stories_old):
         for item in stories_new:
             found = False
             for item2 in stories_old:
@@ -285,9 +285,9 @@ class InstaAnalyzer:
                     break
             if found is False:
                 if item['type'] == 1:
-                    self.callback(user, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, images=[item['photo']])
+                    self.callback(chatId, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, images=[item['photo']])
                 elif item['type'] == 2:
-                    self.callback(user, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, videos=[item['video']])
+                    self.callback(chatId, 'Пользователь @' + user + ' добавил историю в актуальное: ' + highlight, videos=[item['video']])
         for item in stories_old:
             found = False
             for item2 in stories_new:
@@ -296,18 +296,18 @@ class InstaAnalyzer:
                     break
             if found is False:
                 if item['type'] == 1:
-                    self.callback(user, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, images=[item['photo']])
+                    self.callback(chatId, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, images=[item['photo']])
                 elif item['type'] == 2:
-                    self.callback(user, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, videos=[item['video']])
+                    self.callback(chatId, 'Пользователь @' + user + ' удалил историю из актуального: ' + highlight, videos=[item['video']])
 
-    def _handleHighlights(self, user, data_new, data_old):
+    def _handleHighlights(self, user, chatId, data_new, data_old):
         for highlight in data_new:
             found = False
             for highlight_old in data_old:
                 if highlight['title'] == highlight_old['title']:
                     found = True
                     #Сравнение конкретных историй
-                    self._handleReelMedia(user, highlight['title'] ,highlight['stories'], highlight_old['stories'])
+                    self._handleReelMedia(user, chatId, highlight['title'] ,highlight['stories'], highlight_old['stories'])
                     break
             if found is False:
                 #Перебор и отправка всех новых историй
@@ -319,7 +319,7 @@ class InstaAnalyzer:
                         send_images.append(story['photo'])
                     elif story['type'] == 2:
                         send_videos.append(story['video'])
-                self.callback(user, send_str, images=send_images, videos=send_videos)
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)
 
         for highlight in data_old:
             found = False
@@ -337,4 +337,4 @@ class InstaAnalyzer:
                         send_images.append(story['photo'])
                     elif story['type'] == 2:
                         send_videos.append(story['video'])
-                self.callback(user, send_str, images=send_images, videos=send_videos)
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)

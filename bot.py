@@ -18,14 +18,14 @@ def saveMedia(file_name, url):
         out.write(img)
         out.close()
 
-def send_data_callback(user, text='', images=[], videos=[]):
-    bot.send_message(user_list[user]['id'], text)
+def send_data_callback(chatId, text='', images=[], videos=[]):
+    bot.send_message(chatId, text)
     for item in images:
         file_name = '/tmp/spico-temporary-file.jpg'
         saveMedia(file_name, item)
 
         img = open(file_name, "rb")
-        bot.send_photo(user_list[user]['id'], img)
+        bot.send_photo(chatId, img)
         img.close()
         os.remove(file_name)
     for item in videos:
@@ -33,14 +33,13 @@ def send_data_callback(user, text='', images=[], videos=[]):
         saveMedia(file_name, item)
 
         vid = open(file_name, "rb")
-        bot.send_video(user_list[user]['id'], vid)
+        bot.send_video(chatId, vid)
         vid.close()
         os.remove(file_name)
 
-
 try:
     insta = InstaModule('ingabeiko94', 'mKzkgUbYBs', send_data_callback)
-    vk = VkModule('8801923291704', 'CM8Ipp69w')
+    vk = VkModule('8801923291704', 'CM8Ipp69w', send_data_callback)
 except Exception as e:
     print("Exception: " + str(e))
     sys.exit()
@@ -228,10 +227,10 @@ polling_thread.start()
 while 1:
     for user_name in user_list:
         for item in user_list[user_name]['insta']:
-            #insta.getData(item)
+            insta.getData(item, user_list[user_name]['id'])
             pass
         for item in user_list[user_name]['vk']:
-            #vk.getData(item)
+            vk.getData(item, user_list[user_name]['id'])
             pass
     #TODO: Подобрать таймаут
     time.sleep(3)

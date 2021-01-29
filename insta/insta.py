@@ -20,7 +20,7 @@ class InstaModule:
     def removeData(self, nickname):
         self.analyzer.removeUser(nickname)
 
-    def getData(self, nickname):
+    def getData(self, nickname, chatId):
 
         #Получение идентификатора пользователя по имени
         targetId = self._getUserId(nickname)
@@ -28,31 +28,31 @@ class InstaModule:
         #Получение информации об аккаунте и возврат в случае, если он закрытый
         ret = self._receiveProfileInfo(targetId)
         if ret is False:
-            self.analyzer.handleData(nickname, 'private', {'bool': True})
+            self.analyzer.handleData(nickname, chatId, 'private', {'bool': True})
             return
         else:
-            self.analyzer.handleData(nickname, 'private', {'bool': False})
+            self.analyzer.handleData(nickname, chatId, 'private', {'bool': False})
 
-        self.analyzer.handleData(nickname, 'profile', ret)
+        self.analyzer.handleData(nickname, chatId, 'profile', ret)
 
         #Получение подписок
-        self.analyzer.handleData(nickname, 'followings', self._receiveFollowings(targetId))
+        self.analyzer.handleData(nickname, chatId, 'followings', self._receiveFollowings(targetId))
 
         #Получение публикаций (с комментариями)
-        self.analyzer.handleData(nickname, 'posts', self._receivePosts(targetId))
+        self.analyzer.handleData(nickname, chatId, 'posts', self._receivePosts(targetId))
 
         #Получение историй
         stories = self._receiveStories(targetId)
         if stories is not False:
-            self.analyzer.handleData(nickname, 'stories', stories)
+            self.analyzer.handleData(nickname, chatId, 'stories', stories)
         else:
-            self.analyzer.handleData(nickname, 'stories', None)
+            self.analyzer.handleData(nickname, chatId, 'stories', None)
 
         #Получение фото, на которых отмечен пользователь
-        self.analyzer.handleData(nickname, 'tags', self._receiveUserTags(targetId))
+        self.analyzer.handleData(nickname,  chatId,'tags', self._receiveUserTags(targetId))
 
         #Получение всех историй из панели актуального
-        self.analyzer.handleData(nickname, 'highlights', self._receiveHighlights(targetId))
+        self.analyzer.handleData(nickname, chatId, 'highlights', self._receiveHighlights(targetId))
 
     def _getUserId(self, username):
         '''Получаем id пользователя по имени'''
@@ -67,7 +67,7 @@ class InstaModule:
         profile = self.client.getTotalUsernameInfo(targetId)
         ret = {}
 
-        if profile['is_private'] == True:
+        if profile['is_private'] is True:
             return False
 
         ret['name'] = profile['full_name']

@@ -1,10 +1,10 @@
 import json
-import os
 import redis
 
 class VkAnalyzer:
 
-    def __init__(self):
+    def __init__(self, callback):
+        self.callback = callback
         self.red = redis.Redis()
 
     def removeUser(self, user):
@@ -13,7 +13,7 @@ class VkAnalyzer:
             bd_key = 'vk-' + user + '-' + key
             self.red.delete(bd_key)
 
-    def handleData(self, user, uid, key, data):
+    def handleData(self, user, uid, chatId, key, data):
 
         bd_key = 'vk-' + uid + '-' + key
         redis_bd_item = self.red.get(bd_key)
@@ -25,50 +25,39 @@ class VkAnalyzer:
         bd_data = json.loads(redis_bd_item)
 
         if key == 'private':
-            self._handlePrivate(user, data, bd_data)
+            self._handlePrivate(user, uid, chatId, data, bd_data)
         elif key == 'profile':
-            self._handleProfile(user, data, bd_data)
+            self._handleProfile(user, uid, chatId, data, bd_data)
         elif key == 'subscriptions':
-            self._handleSubscriptions(user, data, bd_data)
+            self._handleSubscriptions(user, uid, chatId, data, bd_data)
         elif key == 'friends':
-            self._handleFriends(user, data, bd_data)
+            self._handleFriends(user, uid, chatId, data, bd_data)
         elif key == 'videos':
-            self._handleVideos(user, data, bd_data)
+            self._handleVideos(user, uid, chatId, data, bd_data)
         elif key == 'photos':
-            self._handlePhotos(user, data, bd_data)
+            self._handlePhotos(user, uid, chatId, data, bd_data)
         elif key == 'posts':
-            self._handlePosts(user, data, bd_data)
+            self._handlePosts(user, uid, chatId, data, bd_data)
 
         self.red.set(bd_key, json.dumps(data))
 
-    def _saveMedia(self, media_type, media_id, url):
-        name = 'media/vk/' + str(media_id) + ('.jpg' if media_type == 1 else '.mp4')
-        #Проверка наличия файла с таким именем
-        if os.path.exists(name):
-            return
-
-        img = urllib.request.urlopen(url).read()
-        out = open(name, "wb")
-        out.write(img)
-        out.close()
-
-    def _handlePrivate(self, user, data_new, data_old):
+    def _handlePrivate(self, user, uid, chatId, data_new, data_old):
         if data_new['bool'] == data_old['bool']:
             return
         if data_new['bool'] is True:
-            print("User " + user + " closed account")
+            self.callback(chatId, "Пользователь " + user +  " (" + uid + ") " + "закрыл аккаунт")
         else:
-            print("User " + user + " opened account")
+            self.callback(chatId, "Пользователь " + user +  " (" + uid + ") " + "открыл аккаунт")
 
-    def _handleProfile(self, user, data_new, data_old):
+    def _handleProfile(self, user, uid, chatId, data_new, data_old):
         if data_new == data_old:
             return
         if (data_new['first_name'] + data_new['last_name'])  != (data_old['first_name'] + data_old['last_name']):
-            print("User " + user + " changed name from: " + data_old['first_name'] + ' ' + data_old['last_name'])
+            self.callback(chatId, "Пользователь " + user +  " (" + uid + ") " + 'сменил имя с "' + data_old['first_name'] + ' ' + data_old['last_name'] + '"')
         if data_new['city'] != data_old['city']:
-            print("User " + user + " changed city from: " + data_old['city'] + " to: " + data_new['city'])
+            self.callback(chatId, "Пользователь " + user +  " (" + uid + ") " + ' изменил город с "' + data_old['city'] + '" на "' + data_new['city'] + '"')
         if data_new['status'] != data_old['status']:
-            print("User " + user + " changed status from: " + data_old['status'] +  " to: " + data_new['status'])
+            self.callback(chatId, "Пользователь " + user +  " (" + uid + ") " + ' изменил статус с "' + data_old['status'] +  '" на "' + data_new['status'] + '"')
 
     def _listsDiff(self, list1, list2):
         diff1, diff2 = [], []
@@ -81,20 +70,20 @@ class VkAnalyzer:
 
         return diff1, diff2
 
-    def _handleSubscriptions(self, user, data_new, data_old):
+    def _handleSubscriptions(self, user, uid, chatId, data_new, data_old):
         added, deleted = self._listsDiff(data_new, data_old)
         if len(added) > 0:
-            send_str = 'User ' + user + ' added new subscriptions: '
+            send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' добавил новые подписки: '
             for item in added:
                 send_str += item + ' '
-            print(send_str)
+            self.callback(chatId, send_str)
         if len(deleted) > 0:
-            send_str = 'User ' + user + ' removed subscriptions: '
+            send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' удалил подписки: '
             for item in deleted:
                 send_str += item + ' '
-            print(send_str)
+            self.callback(chatId, send_str)
 
-    def _handleFriends(self, user, data_new, data_old):
+    def _handleFriends(self, user, uid, chatId, data_new, data_old):
         for item in data_new:
             found = False
             for item2 in data_old:
@@ -102,7 +91,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has a new friend: ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в друзья пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -110,9 +99,9 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has lost friend: ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из друзей пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
 
-    def _handleVideos(self, user, data_new, data_old):
+    def _handleVideos(self, user, uid, chatId, data_new, data_old):
         for item in data_new:
             found = False
             for item2 in data_old:
@@ -120,7 +109,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' added a new video: ' + item['title'] + ' - ' + item['url'])
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил видео -  ' + item['title'], videos=([item['url']] if item['url'] != '' else []))
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -128,9 +117,9 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' removed video: ' + item['title'] + ' - ' + item['url'])
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил видео -  ' + item['title'], videos=([item['url']] if item['url'] != '' else []))
 
-    def _handlePhotoComments(self, user, photo, comments_new, comments_old):
+    def _handlePhotoComments(self, user, uid, chatId, comments_new, comments_old):
         for item in comments_new:
             found = False
             for item2 in comments_old:
@@ -138,7 +127,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has a new comment: ' + item + ' under the photo - ' + photo)
+                self.callback(chatId, 'У пользователя ' + user +  " (" + uid + ") " + ' новый комментарий под фотографией: ' + item)
         for item in comments_old:
             found = False
             for item2 in comments_new:
@@ -146,21 +135,24 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has losed comment: ' + item + ' under the photo - ' + photo)
+                self.callback(chatId, 'У пользователь ' + user +  " (" + uid + ") " + ' удален комментарий под фотографией: ' + item)
 
-    def _handlePhotosFromAlbum(self, user, album, photos_new, photos_old):
+    def _handlePhotosFromAlbum(self, user, uid, chatId, album, photos_new, photos_old):
         for item in photos_new:
             found = False
             for item2 in photos_old:
                 if item['id'] == item2['id']:
                     found = True
                     #Сравнение комментариев
-                    self._handlePhotoComments(user, item['photo'], item['comments'], item2['comments'])
+                    self._handlePhotoComments(user, uid, chatId, item['comments'], item2['comments'])
                     break
             if found is False:
-                print('User ' + user + ' added new photo to album: ' + album + " - " + item['photo'])
-                for comment in item['comments']:
-                    print('With comment: ' + comment)
+                send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в альбом "' + album + '" новое фото'
+                if len(item['comments']) > 0:
+                    send_str += "Со следующими комментариями:"
+                    for comment in item['comments']:
+                        send_str += '\n' + comment
+                self.callback(chatId, send_str, images=[item['photo']])
         for item in photos_old:
             found = False
             for item2 in photos_new:
@@ -168,26 +160,32 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' removed photo from album: ' + album + " - " + item['photo'])
-                for comment in item['comments']:
-                    print('With comment: ' + comment)
+                send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из альбома "' + album + '" фото'
+                if len(item['comments']) > 0:
+                    send_str += "Со следующими комментариями:"
+                    for comment in item['comments']:
+                        send_str += '\n' + comment
+                self.callback(chatId, send_str, images=[item['photo']])
 
-    def _handlePhotos(self, user, data_new, data_old):
+    def _handlePhotos(self, user, uid, chatId, data_new, data_old):
         for album in data_new:
             found = False
             for album_old in data_old:
                 if album['title'] == album_old['title']:
                     found = True
                     #Сравнение конкретных фотографий
-                    self._handlePhotosFromAlbum(user, album['title'] ,album['items'], album_old['items'])
+                    self._handlePhotosFromAlbum(user, uid, chatId, album['title'] ,album['items'], album_old['items'])
                     break
             if found is False:
-                print('User ' + user + ' added new album: ' + album['title'])
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил новый альбом "' + album['title'] + '"')
                 #Перебор и отправка всех новых фотографий
                 for photo in album['items']:
-                    print('Photo - ' + photo['photo'])
-                    for comment in photo['comments']:
-                        print('With comment: ' + comment)
+                    send_str = ''
+                    if len(photo['comments']) > 0:
+                        send_str = 'Комментарии к следующей фотографии:'
+                        for comment in photo['comments']:
+                            send_str += '\n' + comment
+                    self.callback(chatId, send_str, images=[photo['photo']])
 
         for album in data_old:
             found = False
@@ -196,14 +194,17 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' added removed album: ' + album['title'])
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил альбом "' + album['title'] + '"')
                 #Перебор и отправка всех старых фотографий
                 for photo in album['items']:
-                    print('Photo - ' + photo['photo'])
-                    for comment in photo['comments']:
-                        print('With comment: ' + comment)
+                    send_str = ''
+                    if len(photo['comments']) > 0:
+                        send_str = 'Комментарии к следующей фотографии:'
+                        for comment in photo['comments']:
+                            send_str += '\n' + comment
+                    self.callback(chatId, send_str, images=[photo['photo']])
 
-    def _handlePostComments(self, user, post, comments_new, comments_old):
+    def _handlePostComments(self, user, uid, chatId, comments_new, comments_old):
         for item in comments_new:
             found = False
             for item2 in comments_old:
@@ -211,7 +212,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has a new comment under the post: ' + post + " - " + item)
+                self.callback(chatId, 'У пользователя ' + user +  " (" + uid + ") " + ' новый комментарий под постом: ' + item)
         for item in comments_old:
             found = False
             for item2 in comments_new:
@@ -219,23 +220,27 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' has losed comment under the post: ' + post + " - " + item)
+                self.callback(chatId, 'У пользователя ' + user +  " (" + uid + ") " + ' удален комментарий под постом: ' + item)
 
-    def _handlePosts(self, user, data_new, data_old):
+    def _handlePosts(self, user, uid, chatId, data_new, data_old):
         for item in data_new:
             found = False
             for item2 in data_old:
                 if item['id']  == item2['id']:
                     found = True
                     #Сравнение комментов
-                    self._handlePostComments(user, item['text'], item['comments'], item2['comments'])
+                    self._handlePostComments(user, uid, chatId, item['comments'], item2['comments'])
                     break
             if found is False:
-                print('User ' + user + ' added a new post: ' + item['text'])
-                for photo in item['attachments']:
-                    print('With photo - ' + photo['photo'])
+                send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' добавил новый пост: ' + item['text']
+                send_images = []
+                if len(item['comments']) > 0:
+                    send_str += 'Со следующими комментариями:'
                     for comment in item['comments']:
-                        print('With comment: ' + comment)
+                        send_str += '\n' + comment
+                for photo in item['attachments']:
+                    send_images.append(photo['photo'])
+                self.callback(chatId, send_str, images=send_images)
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -243,8 +248,12 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                print('User ' + user + ' removed post: ' + item['text'])
+                send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' удалил пост: ' + item['text']
+                send_images = []
+                if len(item['comments']) > 0:
+                    send_str += 'Со следующими комментариями:'
+                    for comment in item['comments']:
+                        send_str += '\n' + comment
                 for photo in item['attachments']:
-                    print('With photo - ' + photo['photo'])
-                for comment in item['comments']:
-                    print('With comment: ' + comment)
+                    send_images.append(photo['photo'])
+                self.callback(chatId, send_str, images=send_images)

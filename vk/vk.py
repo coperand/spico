@@ -1,16 +1,14 @@
-import urllib.request
-import os.path
 import vk_api
 from vk.VkAnalyzer import VkAnalyzer
 
 class VkModule:
 
-    def __init__(self, phone, passwd):
+    def __init__(self, phone, passwd, callback):
         '''Подготовка клиента'''
         vk_session = vk_api.VkApi(phone, passwd)
         vk_session.auth()
         self.vk = vk_session.get_api()
-        self.analyzer = VkAnalyzer()
+        self.analyzer = VkAnalyzer(callback)
 
     def checkId(self, targetId):
         ret = self._receiveUserInfo(targetId)
@@ -22,32 +20,32 @@ class VkModule:
     def removeData(self, userId):
         self.analyzer.removeUser(userId)
 
-    def getData(self, targetId):
+    def getData(self, targetId, chatId):
         #Получаем информацию о пользователе и проверяем аккаунт на закрытость
         ret = self._receiveUserInfo(targetId)
         username = ret['first_name'] + ' ' + ret['last_name']
         if ret['is_closed'] is True:
-            self.analyzer.handleData(username, targetId, 'private', {'bool': True})
+            self.analyzer.handleData(username, targetId, chatId, 'private', {'bool': True})
             return
         else:
-            self.analyzer.handleData(username, targetId, 'private', {'bool': False})
+            self.analyzer.handleData(username, targetId, chatId, 'private', {'bool': False})
 
-        self.analyzer.handleData(username, targetId, 'profile', ret)
+        self.analyzer.handleData(username, targetId, chatId, 'profile', ret)
 
         #Получаем подписки и группы
-        self.analyzer.handleData(username, targetId, 'subscriptions', self._receiveAllSubscriptions(targetId))
+        self.analyzer.handleData(username, targetId, chatId, 'subscriptions', self._receiveAllSubscriptions(targetId))
 
         #Получаем друзей
-        self.analyzer.handleData(username, targetId, 'friends', self._receiveFriends(targetId))
+        self.analyzer.handleData(username, targetId, chatId, 'friends', self._receiveFriends(targetId))
 
         #Получаем видео
-        self.analyzer.handleData(username, targetId, 'videos', self._receiveVideos(targetId))
+        self.analyzer.handleData(username, targetId, chatId, 'videos', self._receiveVideos(targetId))
 
         #Получаем фотографии(с комментариями)
-        self.analyzer.handleData(username, targetId, 'photos', self._receiveAllPhotos(targetId))
+        self.analyzer.handleData(username, targetId, chatId, 'photos', self._receiveAllPhotos(targetId))
 
         #Получаем записи на стене (с комментариями)
-        self.analyzer.handleData(username, targetId, 'posts', self._receivePosts(targetId))
+        self.analyzer.handleData(username, targetId, chatId, 'posts', self._receivePosts(targetId))
 
     def _receiveUserInfo(self, targetId):
         response = {}
