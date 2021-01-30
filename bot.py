@@ -9,8 +9,17 @@ from vk.vk import VkModule
 
 bot = telebot.TeleBot('TOKEN')
 
+#Блокировка списка user_list
+lock = False
+
+#Список допущеных пользователей
 white_list = ['coperand']
+
+#Список отслеживаемых пользователей
 user_list = {}
+
+#Файл для вывода информации о возникающих исключительных ситуациях
+log_file = open('/tmp/spico-log.txt', 'a')
 
 def saveMedia(file_name, url):
         img = urllib.request.urlopen(url).read()
@@ -42,7 +51,8 @@ try:
     insta = InstaModule('ingabeiko94', 'mKzkgUbYBs', send_data_callback)
     vk = VkModule('8801923291704', 'CM8Ipp69w', send_data_callback)
 except Exception as e:
-    print("Exception: " + str(e))
+    traceback.print_exc(file=log_file)
+    log_file.close()
     sys.exit()
 
 def send_menu(user_id, message):
@@ -56,6 +66,12 @@ def send_menu(user_id, message):
 
     bot.send_message(user_id, text=message, reply_markup=keyboard)
 
+def check_lock(chatId):
+    if lock is True:
+        bot.send_message(chatId, text="Список пользователь занят другим потоком. Операция будет совершена, когда он освободится")
+        while lock is True:
+            time.sleep(1)
+
 def add_insta_username(message):
     if message.text == '/cancel':
         send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
@@ -68,7 +84,9 @@ def add_insta_username(message):
         return
 
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
-    if message.text not in user_dict['insta']:
+    if message.text not in user_dict['insta']:\
+        #Проверка cостояния блокировки
+        check_lock(message.from_user.id)
         user_dict['insta'].append(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " добавлен в список отслеживаемых")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
@@ -86,6 +104,8 @@ def del_insta_username(message):
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, del_insta_username)
     else:
+        #Проверка cостояния блокировки
+        check_lock(message.from_user.id)
         user_dict['insta'].remove(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
@@ -105,6 +125,8 @@ def add_vk_id(message):
 
     user_dict = user_list.setdefault(message.from_user.username, {'insta': [], 'vk': [], 'id': message.from_user.id})
     if message.text not in user_dict['vk']:
+        #Проверка cостояния блокировки
+        check_lock(message.from_user.id)
         user_dict['vk'].append(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + username + ' (' + message.text + ')' + " добавлен в список отслеживаемых")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
@@ -122,6 +144,8 @@ def del_vk_id(message):
         msg = bot.send_message(message.from_user.id, text="Пользователя нет в списке отслеживаемых. Введите другого или /cancel для отмены")
         bot.register_next_step_handler(msg, del_vk_id)
     else:
+        #Проверка cостояния блокировки
+        check_lock(message.from_user.id)
         user_dict['vk'].remove(message.text)
         bot.send_message(message.from_user.id, "Пользователь " + message.text + " удален из списка отслеживаемых. ")
         send_menu(message.from_user.id, "Какие еще действия вы бы хотели совершить?")
@@ -161,6 +185,10 @@ def ask_platform_worker(call):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_worker(call):
+    if call.from_user.username not in white_list:
+        bot.send_message(call.message.chat.id, "Доступ запрещен")
+        return
+    
     if call.data == 'add_user' or call.data == 'del_user' or call.data == 'print_users':
         ask_platform_worker(call)
 
@@ -219,20 +247,23 @@ def text_messages_handler(message):
 
     send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
 
-#insta.getData("arina_weasley")
-#vk.getData('78961353')
-
 polling_thread = Thread(target=bot.polling, args=(True, 0,))
 polling_thread.start()
 
 while 1:
-    print("Cycle iteration")
+    #Устанавливаем блокировку
+    lock = True
     for user_name in user_list:
         for item in user_list[user_name]['insta']:
-            insta.getData(item, user_list[user_name]['id'])
-            pass
+            try:
+                insta.getData(item, user_list[user_name]['id'])
+            except Exception:
+                traceback.print_exc(file=log_file)
         for item in user_list[user_name]['vk']:
-            vk.getData(item, user_list[user_name]['id'])
-            pass
-    #TODO: Подобрать таймаут
-    time.sleep(30)
+            try:
+                vk.getData(item, user_list[user_name]['id'])
+            except:
+                traceback.print_exc(file=log_file)
+    #Снимаем блокировку
+    lock = False
+    time.sleep(5 * 60)
