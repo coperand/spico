@@ -13,13 +13,14 @@ white_list = ['coperand']
 user_list = {}
 
 def saveMedia(file_name, url):
-        img = urllib.request.urlopen(item).read()
+        img = urllib.request.urlopen(url).read()
         out = open(file_name, "wb")
         out.write(img)
         out.close()
 
 def send_data_callback(chatId, text='', images=[], videos=[]):
-    bot.send_message(chatId, text)
+    if text != '':
+        bot.send_message(chatId, text)
     for item in images:
         file_name = '/tmp/spico-temporary-file.jpg'
         saveMedia(file_name, item)
@@ -225,6 +226,7 @@ polling_thread = Thread(target=bot.polling, args=(True, 0,))
 polling_thread.start()
 
 while 1:
+    print("Cycle iteration")
     for user_name in user_list:
         for item in user_list[user_name]['insta']:
             insta.getData(item, user_list[user_name]['id'])
@@ -233,4 +235,4 @@ while 1:
             vk.getData(item, user_list[user_name]['id'])
             pass
     #TODO: Подобрать таймаут
-    time.sleep(3)
+    time.sleep(30)

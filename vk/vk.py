@@ -124,7 +124,7 @@ class VkModule:
 
         ret = []
         for item in friends:
-            ret.append({'first_name': item['first_name'], 'last_name': item['last_name'], 'sex': "M" if item['sex'] == 2 else "F"})
+            ret.append({'first_name': item['first_name'], 'last_name': item['last_name'], 'id': str(item['id']), 'sex': "M" if item['sex'] == 2 else "F"})
         return ret
 
     def _receiveVideos(self, targetId):

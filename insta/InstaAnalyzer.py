@@ -54,9 +54,9 @@ class InstaAnalyzer:
         if data_new == data_old:
             return
         if data_new['name'] != data_old['name']:
-            self.callback(chatId, "Пользователь @" + user + " сменил имя с " + data_old['name'] + " на " + data_new['name'])
+            self.callback(chatId, "Пользователь @" + user + ' сменил имя с "' + data_old['name'] + '" на "' + data_new['name'] + '"')
         if data_new['bio'] != data_old['bio']:
-            self.callback(chatId, "Пользователь @" + user + " сменил биографию с " + data_old['bio'] + " на " + data_new['bio'])
+            self.callback(chatId, "Пользователь @" + user + ' сменил биографию с "' + data_old['bio'] + '" на "' + data_new['bio'] + '"')
         if data_new['avatar_id'] != data_old['avatar_id']:
             self.callback(chatId, "Пользователь @" + user + " сменил аватар", images=[data_old['avatar'], data_new['avatar']])
 
@@ -181,7 +181,7 @@ class InstaAnalyzer:
         if len(deleted_comments) > 0:
             for item in deleted_comments:
                 for comment in item['changes']:
-                    self.callback(chatId, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'] + ' under the post: ' + item['item']['id'])
+                    self.callback(chatId, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'])
 
     def _handleStories(self, user, chatId, data_new, data_old):
         if data_new is None and data_old is not None:

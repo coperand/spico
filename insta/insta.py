@@ -147,7 +147,7 @@ class InstaModule:
         return ret
 
     def _receiveUserTags(self, targetId):
-        '''Получаем истории, на которых отметили пользователя'''
+        '''Получаем посты, на которых отметили пользователя'''
         tags = self.client.getTotalUserTags(targetId)
         ret = []
 

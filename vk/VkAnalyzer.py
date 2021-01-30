@@ -91,7 +91,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в друзья пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в друзья пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + '((' + item['sex'] + '))')
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -99,7 +99,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из друзей пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['sex'] + ')')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из друзей пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + '((' + item['sex'] + '))')
 
     def _handleVideos(self, user, uid, chatId, data_new, data_old):
         for item in data_new:
@@ -109,7 +109,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил видео -  ' + item['title'], videos=([item['url']] if item['url'] != '' else []))
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил видео -  ' + item['title'] + '\nUrl: ' + item['url'])
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -117,7 +117,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил видео -  ' + item['title'], videos=([item['url']] if item['url'] != '' else []))
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил видео -  ' + item['title'] + '\nUrl: ' + item['url'])
 
     def _handlePhotoComments(self, user, uid, chatId, comments_new, comments_old):
         for item in comments_new:
@@ -149,7 +149,7 @@ class VkAnalyzer:
             if found is False:
                 send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в альбом "' + album + '" новое фото'
                 if len(item['comments']) > 0:
-                    send_str += "Со следующими комментариями:"
+                    send_str += "\nСо следующими комментариями:"
                     for comment in item['comments']:
                         send_str += '\n' + comment
                 self.callback(chatId, send_str, images=[item['photo']])
@@ -162,7 +162,7 @@ class VkAnalyzer:
             if found is False:
                 send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из альбома "' + album + '" фото'
                 if len(item['comments']) > 0:
-                    send_str += "Со следующими комментариями:"
+                    send_str += "\nСо следующими комментариями:"
                     for comment in item['comments']:
                         send_str += '\n' + comment
                 self.callback(chatId, send_str, images=[item['photo']])
@@ -235,7 +235,7 @@ class VkAnalyzer:
                 send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' добавил новый пост: ' + item['text']
                 send_images = []
                 if len(item['comments']) > 0:
-                    send_str += 'Со следующими комментариями:'
+                    send_str += '\nСо следующими комментариями:'
                     for comment in item['comments']:
                         send_str += '\n' + comment
                 for photo in item['attachments']:
@@ -251,7 +251,7 @@ class VkAnalyzer:
                 send_str = 'Пользователь ' + user +  " (" + uid + ") " + ' удалил пост: ' + item['text']
                 send_images = []
                 if len(item['comments']) > 0:
-                    send_str += 'Со следующими комментариями:'
+                    send_str += '\nСо следующими комментариями:'
                     for comment in item['comments']:
                         send_str += '\n' + comment
                 for photo in item['attachments']:
