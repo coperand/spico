@@ -1,6 +1,8 @@
 import sys
 import time
 import os
+import pickle
+import signal
 import urllib.request
 from threading import Thread
 import telebot
@@ -17,6 +19,9 @@ white_list = ['coperand']
 
 #Список отслеживаемых пользователей
 user_list = {}
+
+#Имя файла, используемого для сериализации
+serial_name = '.dump'
 
 #Файл для вывода информации о возникающих исключительных ситуациях
 log_file = open('/tmp/spico-log.txt', 'a')
@@ -247,8 +252,29 @@ def text_messages_handler(message):
 
     send_menu(message.from_user.id, "Бот активен. Какие действия вы бы хотели совершить?")
 
+#Считываем сериализованные данные
+try:
+    user_list = pickle.load(open(serial_name, 'rb'))
+except:
+    pass
+
+#Запускаем поток, реагирующий на сообщения от пользователя
 polling_thread = Thread(target=bot.polling, args=(True, 0,))
 polling_thread.start()
+
+#Устанавливаем обработчик сигналов прерывания и используем переменную dump_done, чтобы не повторять дамп для каждого потока
+dump_done = False
+def signal_handler(sig_num, frame):
+    global dump_done
+    if dump_done is False:
+        pickle.dump(user_list, open(serial_name, 'wb'), protocol=pickle.HIGHEST_PROTOCOL)
+        dump_done = True
+        print(user_list)
+        print()
+    sys.exit()
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
 
 while 1:
     #Устанавливаем блокировку
