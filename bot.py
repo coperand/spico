@@ -3,6 +3,7 @@ import time
 import os
 import pickle
 import signal
+import traceback
 import urllib.request
 from threading import Thread
 import telebot
@@ -27,10 +28,10 @@ serial_name = '.dump'
 log_file = open('/tmp/spico-log.txt', 'a')
 
 def saveMedia(file_name, url):
-        img = urllib.request.urlopen(url).read()
-        out = open(file_name, "wb")
-        out.write(img)
-        out.close()
+    img = urllib.request.urlopen(url).read()
+    out = open(file_name, "wb")
+    out.write(img)
+    out.close()
 
 def send_data_callback(chatId, text='', images=[], videos=[]):
     if text != '':
@@ -53,7 +54,7 @@ def send_data_callback(chatId, text='', images=[], videos=[]):
         os.remove(file_name)
 
 try:
-    insta = InstaModule('ingabeiko94', 'mKzkgUbYBs', send_data_callback)
+    insta = InstaModule('ambipi200291', 'qHG23GRdaOS', send_data_callback)
     vk = VkModule('8801923291704', 'CM8Ipp69w', send_data_callback)
 except Exception as e:
     traceback.print_exc(file=log_file)

@@ -127,11 +127,10 @@ class InstaAnalyzer:
         added, deleted, added_comments, deleted_comments = self._postsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
-                send_str = ''
+                send_str = 'Пользователь @' + user + ' выложил новый пост'
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
-                    send_str = 'Пользователь @' + user + ' выложил новый пост'
                     for car_data in item['carousel']:
                         if car_data['type'] == 1:
                             send_images.append(car_data['photo'])
@@ -148,14 +147,14 @@ class InstaAnalyzer:
                     comments_str = 'Со следующими комментариями:'
                     for comment in item['comments']:
                         comments_str += '\n@' + comment['user'] + ': ' + comment['text']
-                self.callback(chatId, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
+                    send_str += "\n" + comments_str
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)
         if len(deleted) > 0:
             for item in deleted:
-                send_str = ''
+                send_str = 'Пользователь @' + user + ' удалил пост'
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
-                    send_str = 'Пользователь @' + user + ' удалил пост'
                     for car_data in item['carousel']:
                         if car_data['type'] == 1:
                             send_images.append(car_data['photo'])
@@ -172,7 +171,8 @@ class InstaAnalyzer:
                     comments_str = 'Со следующими комментариями:'
                     for comment in item['comments']:
                         comments_str += '\n@' + comment['user'] + ': ' + comment['text']
-                self.callback(chatId, send_str + (('\n' + comments_str) if comments_str != '' else ''), images=send_images, videos=send_videos)
+                    send_str += "\n" + comments_str
+                self.callback(chatId, send_str, images=send_images, videos=send_videos)
 
         if len(added_comments) > 0:
             for item in added_comments:
@@ -240,11 +240,10 @@ class InstaAnalyzer:
         added, deleted = self._tagsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
-                send_str = ''
+                send_str = 'Пользователя @' + user + ' отметили в посте'
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
-                    send_str = 'Пользователя @' + user + ' отметили в посте'
                     for car_data in item['carousel']:
                         if car_data['type'] == 1:
                             send_images.append(car_data['photo'])
@@ -259,11 +258,10 @@ class InstaAnalyzer:
 
         if len(deleted) > 0:
             for item in deleted:
-                send_str = ''
+                send_str = 'Пользователя @' + user + ' убрали из отмеченных в посте'
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
-                    send_str = 'Пользователя @' + user + ' убрали из отмеченных в посте'
                     for car_data in item['carousel']:
                         if car_data['type'] == 1:
                             send_images.append(car_data['photo'])
