@@ -1,6 +1,8 @@
 import sys
 import time
 import os
+import random
+import datetime
 import pickle
 import signal
 import traceback
@@ -54,8 +56,8 @@ def send_data_callback(chatId, text='', images=[], videos=[]):
         os.remove(file_name)
 
 try:
-    insta = InstaModule('ambipi200291', 'qHG23GRdaOS', send_data_callback)
-    vk = VkModule('8801923291704', 'CM8Ipp69w', send_data_callback)
+    insta = InstaModule('login', 'passwd', send_data_callback)
+    vk = VkModule('login', 'passwd', send_data_callback)
 except Exception as e:
     traceback.print_exc(file=log_file)
     log_file.close()
@@ -278,19 +280,22 @@ signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)
 
 while 1:
-    #Устанавливаем блокировку
-    lock = True
-    for user_name in user_list:
-        for item in user_list[user_name]['insta']:
-            try:
-                insta.getData(item, user_list[user_name]['id'])
-            except Exception:
-                traceback.print_exc(file=log_file)
-        for item in user_list[user_name]['vk']:
-            try:
-                vk.getData(item, user_list[user_name]['id'])
-            except:
-                traceback.print_exc(file=log_file)
-    #Снимаем блокировку
-    lock = False
-    time.sleep(5 * 60)
+    cur_time = datetime.datetime.now().time()
+    if cur_time > datetime.time(6,0,0) and time < datetime.time(23,0,0):
+        #Устанавливаем блокировку
+        lock = True
+        for user_name in user_list:
+            for item in user_list[user_name]['insta']:
+                try:
+                    insta.getData(item, user_list[user_name]['id'])
+                except Exception:
+                    traceback.print_exc(file=log_file)
+            for item in user_list[user_name]['vk']:
+                try:
+                    vk.getData(item, user_list[user_name]['id'])
+                except:
+                    traceback.print_exc(file=log_file)
+        #Снимаем блокировку
+        lock = False
+
+    time.sleep(10 * 60 + random.randint(0, 300))

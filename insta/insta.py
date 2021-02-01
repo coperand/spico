@@ -1,3 +1,4 @@
+import time
 import insta.InstagramAPI as iAPI
 from insta.InstaAnalyzer import InstaAnalyzer
 
@@ -34,12 +35,15 @@ class InstaModule:
             self.analyzer.handleData(nickname, chatId, 'private', {'bool': False})
 
         self.analyzer.handleData(nickname, chatId, 'profile', ret)
+        time.sleep(1)
 
         #Получение подписок
         self.analyzer.handleData(nickname, chatId, 'followings', self._receiveFollowings(targetId))
+        time.sleep(1)
 
         #Получение публикаций (с комментариями)
         self.analyzer.handleData(nickname, chatId, 'posts', self._receivePosts(targetId))
+        time.sleep(1)
 
         #Получение историй
         stories = self._receiveStories(targetId)
@@ -47,9 +51,11 @@ class InstaModule:
             self.analyzer.handleData(nickname, chatId, 'stories', stories)
         else:
             self.analyzer.handleData(nickname, chatId, 'stories', None)
+        time.sleep(1)
 
         #Получение фото, на которых отмечен пользователь
         self.analyzer.handleData(nickname,  chatId,'tags', self._receiveUserTags(targetId))
+        time.sleep(1)
 
         #Получение всех историй из панели актуального
         self.analyzer.handleData(nickname, chatId, 'highlights', self._receiveHighlights(targetId))
@@ -196,4 +202,5 @@ class InstaModule:
 
         for item in highlights:
             ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
+            time.sleep(1)
         return ret
