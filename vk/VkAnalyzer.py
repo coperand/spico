@@ -91,7 +91,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в друзья пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + '((' + item['sex'] + '))')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' добавил в друзья пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + ' ((' + item['sex'] + '))')
         for item in data_old:
             found = False
             for item2 in data_new:
@@ -99,7 +99,7 @@ class VkAnalyzer:
                     found = True
                     break
             if found is False:
-                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из друзей пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + '((' + item['sex'] + '))')
+                self.callback(chatId, 'Пользователь ' + user +  " (" + uid + ") " + ' удалил из друзей пользователя ' + item['first_name'] + ' ' + item['last_name'] + ' (' + item['id'] + ')' + ' ((' + item['sex'] + '))')
 
     def _handleVideos(self, user, uid, chatId, data_new, data_old):
         for item in data_new:

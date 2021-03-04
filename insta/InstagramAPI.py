@@ -322,7 +322,8 @@ class InstagramAPI:
         followers = []
         next_max_id = ''
         while 1:
-            self.getUserFollowers(usernameId, next_max_id)
+            if self.getUserFollowers(usernameId, next_max_id) is False:
+                raise Exception("Instagram request failure")
             temp = self.LastJson
             try:
                 for item in temp["users"]:
@@ -339,7 +340,8 @@ class InstagramAPI:
         followings = []
         next_max_id = ''
         while True:
-            self.getUserFollowings(usernameId, next_max_id)
+            if self.getUserFollowings(usernameId, next_max_id) is False:
+                raise Exception("Instagram request failure")
             temp = self.LastJson
             try:
                 for item in temp["users"]:
@@ -352,11 +354,13 @@ class InstagramAPI:
         return followings
 
     def getTotalStory(self, usernameId):
-        self.getStory(usernameId)
+        if self.getStory(usernameId) is False:
+            raise Exception("Instagram request failure")
         return self.LastJson
 
     def getTotalUsernameInfo(self, usernameId):
-        self.getUsernameInfo(usernameId)
+        if self.getUsernameInfo(usernameId) is False:
+            raise Exception("Instagram request failure")
         return self.LastJson['user']
 
     def getTotalSearchUsername(self, usernameName):
@@ -367,7 +371,8 @@ class InstagramAPI:
 
     def getTotalMediaComments(self, mediaId):
         comments = []
-        self.getMediaComments(mediaId)
+        if self.getMediaComments(mediaId) is False:
+            raise Exception("Instagram request failure")
         temp = self.LastJson
         try:
             for item in temp["comments"]:
@@ -380,7 +385,8 @@ class InstagramAPI:
         user_tags = []
         next_max_id = ''
         while True:
-            self.getUserTags(usernameId)
+            if self.getUserTags(usernameId) is False:
+                raise Exception("Instagram request failure")
             temp = self.LastJson
             try:
                 for item in temp["items"]:
@@ -396,7 +402,8 @@ class InstagramAPI:
         user_feed = []
         next_max_id = ''
         while True:
-            self.getUserFeed(usernameId, next_max_id, minTimestamp)
+            if self.getUserFeed(usernameId, next_max_id, minTimestamp) is False:
+                raise Exception("Instagram request failure")
             temp = self.LastJson
             try:
                 for item in temp["items"]:
@@ -411,7 +418,8 @@ class InstagramAPI:
 
     def getTotalUserHighlights(self, usernameId):
         highlights = []
-        self.getUserHighlights(usernameId)
+        if self.getUserHighlights(usernameId) is False:
+            raise Exception("Instagram request failure")
         temp = self.LastJson
         try:
             for item in temp['tray']:
@@ -422,7 +430,8 @@ class InstagramAPI:
 
     def getTotalReelMedia(self, reelId):
         reel_media = []
-        self.getReelMedia(reelId)
+        if self.getReelMedia(reelId) is False:
+            raise Exception("Instagram request failure")
         temp = self.LastJson
         try:
             for item in temp['reels'][reelId]['items']:

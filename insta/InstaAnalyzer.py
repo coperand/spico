@@ -99,6 +99,7 @@ class InstaAnalyzer:
     def _postsDiff(self, list1, list2):
         diff1 , diff2 = [], []
         comments_diff1, comments_diff2 = [], []
+        text_diff = []
         for item in list1:
             found = False
             for item2 in list2:
@@ -108,6 +109,9 @@ class InstaAnalyzer:
                     cdiff1, cdiff2 = self._commentsDiff(item, item2)
                     comments_diff1.append({'item': item, 'changes': cdiff1})
                     comments_diff2.append({'item': item, 'changes': cdiff2})
+                    #Проверяем, не изменилась ли подпись к посту
+                    if item['text'] != item2['text']:
+                        text_diff.append({'old': item2['text'], 'new': item['text']})
                     break
             if found is False:
                 diff1.append(item)
@@ -121,13 +125,13 @@ class InstaAnalyzer:
             if found is False:
                 diff2.append(item)
 
-        return diff1, diff2, comments_diff1, comments_diff2
+        return diff1, diff2, comments_diff1, comments_diff2, text_diff
 
     def _handlePosts(self, user, chatId, data_new, data_old):
-        added, deleted, added_comments, deleted_comments = self._postsDiff(data_new, data_old)
+        added, deleted, added_comments, deleted_comments, text_diff = self._postsDiff(data_new, data_old)
         if len(added) > 0:
             for item in added:
-                send_str = 'Пользователь @' + user + ' выложил новый пост'
+                send_str = 'Пользователь @' + user + ' выложил новый пост: ' + item['text']
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
@@ -151,7 +155,7 @@ class InstaAnalyzer:
                 self.callback(chatId, send_str, images=send_images, videos=send_videos)
         if len(deleted) > 0:
             for item in deleted:
-                send_str = 'Пользователь @' + user + ' удалил пост'
+                send_str = 'Пользователь @' + user + ' удалил пост: ' + item['text']
                 send_images = []
                 send_videos = []
                 if item['type'] == 8:
@@ -182,6 +186,10 @@ class InstaAnalyzer:
             for item in deleted_comments:
                 for comment in item['changes']:
                     self.callback(chatId, 'У пользователя @' + user + ' удален комментарий от @' + comment['user'] + ': ' + comment['text'])
+        
+        if len(text_diff) > 0:
+            for item in text_diff:
+                self.callback(chatId, 'Пользователь @' + user + ' изменил подпись к посту с "' + item['old'] + '" на "' + item['new'] + '"')
 
     def _handleStories(self, user, chatId, data_new, data_old):
         if data_new is None and data_old is not None:

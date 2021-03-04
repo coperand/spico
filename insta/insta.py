@@ -1,4 +1,5 @@
 import time
+import random
 import insta.InstagramAPI as iAPI
 from insta.InstaAnalyzer import InstaAnalyzer
 
@@ -11,6 +12,9 @@ class InstaModule:
         if self.client.isLoggedIn is False:
             raise Exception("Instagram logging failure")
         self.analyzer = InstaAnalyzer(callback)
+
+    def randomSleep(self):
+        time.sleep(random.randint(5, 90))
 
     def checkName(self, nickname):
         if self._getUserId(nickname) is False:
@@ -26,6 +30,9 @@ class InstaModule:
         #Получение идентификатора пользователя по имени
         targetId = self._getUserId(nickname)
 
+        if targetId is False:
+            raise Exception("Instagram request failure")
+
         #Получение информации об аккаунте и возврат в случае, если он закрытый
         ret = self._receiveProfileInfo(targetId)
         if ret is False:
@@ -35,15 +42,15 @@ class InstaModule:
             self.analyzer.handleData(nickname, chatId, 'private', {'bool': False})
 
         self.analyzer.handleData(nickname, chatId, 'profile', ret)
-        time.sleep(1)
+        self.randomSleep()
 
         #Получение подписок
         self.analyzer.handleData(nickname, chatId, 'followings', self._receiveFollowings(targetId))
-        time.sleep(1)
+        self.randomSleep()
 
         #Получение публикаций (с комментариями)
         self.analyzer.handleData(nickname, chatId, 'posts', self._receivePosts(targetId))
-        time.sleep(1)
+        self.randomSleep()
 
         #Получение историй
         stories = self._receiveStories(targetId)
@@ -51,11 +58,11 @@ class InstaModule:
             self.analyzer.handleData(nickname, chatId, 'stories', stories)
         else:
             self.analyzer.handleData(nickname, chatId, 'stories', None)
-        time.sleep(1)
+        self.randomSleep()
 
         #Получение фото, на которых отмечен пользователь
         self.analyzer.handleData(nickname,  chatId,'tags', self._receiveUserTags(targetId))
-        time.sleep(1)
+        self.randomSleep()
 
         #Получение всех историй из панели актуального
         self.analyzer.handleData(nickname, chatId, 'highlights', self._receiveHighlights(targetId))
@@ -107,6 +114,11 @@ class InstaModule:
 
         for item in posts:
             ret_item = {}
+            ret_item['text'] = ''
+
+            #Получаем подпись к посту
+            if item['caption'] is not None:
+                ret_item['text'] = item['caption']['text']
 
             if item['media_type'] == 1:
                 ret_item['type'] = 1
@@ -202,5 +214,5 @@ class InstaModule:
 
         for item in highlights:
             ret.append({'title': item['title'], 'stories': self._receiveReelMedia(item['id'])})
-            time.sleep(1)
+            self.randomSleep()
         return ret

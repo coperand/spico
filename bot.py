@@ -18,7 +18,7 @@ bot = telebot.TeleBot('TOKEN')
 lock = False
 
 #Список допущеных пользователей
-white_list = ['coperand']
+white_list = ['coperand', 'Max0nsky']
 
 #Список отслеживаемых пользователей
 user_list = {}
@@ -281,7 +281,7 @@ signal.signal(signal.SIGINT, signal_handler)
 
 while 1:
     cur_time = datetime.datetime.now().time()
-    if cur_time > datetime.time(6,0,0) and time < datetime.time(23,0,0):
+    if cur_time > datetime.time(6,0,0) and cur_time < datetime.time(23,0,0):
         #Устанавливаем блокировку
         lock = True
         for user_name in user_list:
@@ -298,4 +298,4 @@ while 1:
         #Снимаем блокировку
         lock = False
 
-    time.sleep(10 * 60 + random.randint(0, 300))
+    time.sleep(120 * 60 + random.randint(0, 90 * 60))
